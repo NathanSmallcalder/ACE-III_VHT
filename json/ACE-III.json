@@ -47,7 +47,7 @@
                     "question_text": "Serial 7s: Subtract 7 from 100 and keep subtracting 7.",
                     "instructions": "Speak: 'Could you take 7 away from 100? I would like you to keep taking 7 away from each new number until I tell you to stop.' Wait for a response. Stop after five subtractions.",
                     "score_cap": 5,
-                    "match_type": "integer_list",
+                    "match_type": "serial_sevens",
                     "answers": ["93", "86", "79", "72", "65"],
                     "image": null
                 }

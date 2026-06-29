@@ -7,7 +7,7 @@ def clean_response(text):
     text = re.sub(r'\s+', ' ', text)
     return text.lower().strip()
 
-# Converts 85 into eighty-five
+# e.g Converts 85 into eighty-five
 def normalise_number(text):
     try:
         return str(w2n.word_to_num(text))

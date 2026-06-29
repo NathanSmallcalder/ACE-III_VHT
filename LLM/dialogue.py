@@ -33,14 +33,16 @@ def acknowledge(last_response: str) -> str:
     return result.content.strip().strip('"')
 
 
-def soften_repeat() -> str:
-    """Short reassuring phrase spoken before repeating a question the patient missed."""
+def rephrase_question(question_text: str) -> str:
+    """Rephrased version of the question spoken when the patient didn't understand."""
     result = llm_warm.invoke([
         SystemMessage(content=(
-            "You are a warm clinical assessor. The patient didn't catch the "
-            "question. Reply with ONLY a brief (3-6 word) reassuring phrase to "
-            "say before repeating it. Do not repeat the question itself."
-        ))
+            "You are a warm clinical assessor. The patient did not understand the question. "
+            "Reply with ONLY a brief (1-2 sentence) rephrased version of the question "
+            "to help them understand. Do not add new information, do not judge their "
+            "response, do not use quotes."
+        )),
+        HumanMessage(content=f"Question: {question_text}")
     ])
     return result.content.strip().strip('"')
 
@@ -48,7 +50,8 @@ def soften_repeat() -> str:
 # Patient Needs a Repeat
 # Patient is Off Topic
 # Patient's Answer is Incomplete
-_LABELS = {"answer", "repeat", "off_topic", "incomplete"}
+
+LABELS = {"answer", "repeat", "off_topic", "incomplete"}
 
 def classify_turn(last_response: str) -> str:
     out = llm_strict.invoke([
@@ -64,5 +67,7 @@ def classify_turn(last_response: str) -> str:
         )),
         HumanMessage(content=f"Patient said: {last_response}")
     ])
-    label = out.content.strip().lower().split()[0].strip(".,'\"")
-    return label if label in _LABELS else "answer"
+    parts = out.content.strip().lower().split()
+    label = parts[0].strip(".,'\"") if parts else "answer"
+    return label if label in LABELS else "answer"
+
