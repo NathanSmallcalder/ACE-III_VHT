@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 from pydantic import BaseModel
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -53,21 +54,54 @@ def rephrase_question(question_text: str) -> str:
 
 LABELS = {"answer", "repeat", "off_topic", "incomplete"}
 
-def classify_turn(last_response: str) -> str:
+def classify_turn(last_response: str, question_text: str = "") -> str:
     out = llm_strict.invoke([
         SystemMessage(content=(
-            "Classify the patient's utterance during a cognitive test. "
+            "Classify the patient's utterance during a cognitive test, given the question "
+            "they were just asked. "
             "Reply with EXACTLY one of these words and nothing else: "
             "answer, repeat, off_topic, incomplete.\n"
-            "- repeat: asked you to repeat or didn't hear\n"
-            "- off_topic: spoke but did not attempt the task\n"
-            "- incomplete: began answering but seems unfinished\n"
-            "- answer: gave what they intend as their answer\n"
-            "Classify intent only. Do not judge correctness."
+            "- repeat: the patient is asking YOU to repeat or re-say the question "
+            "(e.g. 'what?', 'sorry?', 'can you say that again'), or says they didn't hear it\n"
+            "- off_topic: the utterance is not a plausible attempt at this specific question "
+            "(rambling, nonsense syllables, unrelated remarks, talking about something else "
+            "entirely) — even if it is wrong, it is off_topic unless it is at least a genuine "
+            "attempt to address what was asked\n"
+            "- incomplete: began a plausible attempt but there is clear evidence they were "
+            "cut off or trailed off before finishing (hesitation fillers like 'um'/'uh', "
+            "self-interruption, or trailing punctuation like '...'). "
+            "A short or single-word reply is NOT incomplete just because it is brief — "
+            "many valid answers (e.g. a single number, name, ordinal, or word, with or "
+            "without a leading article like 'the') are naturally terse and complete as-is. "
+            "'first', 'the first', 'the second', etc. are complete answers on their own, "
+            "not unfinished phrases. Only use incomplete when the utterance itself shows "
+            "actual signs of being unfinished, not merely because it lacks extra detail\n"
+            "- answer: gave what they intend as their answer to THIS question, whether "
+            "correct or incorrect, no matter how short. Saying the same word or phrase "
+            "multiple times in a row is still an answer, not a request to repeat the "
+            "question\n"
+            "Judge only whether the utterance is a genuine attempt at answering the given "
+            "question — do not judge whether it is factually correct.\n\n"
+            "Examples:\n"
+            "Question asked: What day of the week is it?\nPatient said: Wednesday.\n-> answer\n"
+            "Question asked: What is today's date?\nPatient said: first\n-> answer\n"
+            "Question asked: What is today's date?\nPatient said: the first\n-> answer\n"
+            "Question asked: What season is it?\nPatient said: Summer, summer, summer.\n-> answer\n"
+            "Question asked: What day of the week is it?\nPatient said: You and me and Sal.\n-> off_topic\n"
+            "Question asked: What day of the week is it?\nPatient said: What? Can you repeat that?\n-> repeat\n"
+            "Question asked: What month is it?\nPatient said: Um, I think, I think it is...\n-> incomplete"
         )),
-        HumanMessage(content=f"Patient said: {last_response}")
+        HumanMessage(content=f"Question asked: {question_text}\nPatient said: {last_response}")
     ])
-    parts = out.content.strip().lower().split()
-    label = parts[0].strip(".,'\"") if parts else "answer"
-    return label if label in LABELS else "answer"
+    # The backing model reasons in prose before concluding, so the label may not
+    # be the first token (or even the only word) in the response. Scan the whole
+    # reply and take the last label mentioned, since that's the model's conclusion.
+    content = out.content.strip().lower()
+    matches = re.findall(r"\b(" + "|".join(LABELS) + r")\b", content)
+    if matches:
+        return matches[-1]
+    # Unparseable output must not default to "answer": that silently scores the
+    # turn and advances past it. Defaulting to "repeat" just re-asks the
+    # question, which is safe and bounded by max_attempts.
+    return "repeat"
 

@@ -3,23 +3,21 @@ import time
 
 class TTSEngine:
     def __init__(self, rate=150, volume=1.0):
-        """
-        Initializes a local, cross-platform Text-to-Speech engine.
-        Rate is set to 150 by default (slower than normal 200) for clarity.
-        """
-        self.engine = pyttsx3.init()
-        self.engine.setProperty('rate', rate)
-        self.engine.setProperty('volume', volume)
-        
-        # Set voices
-        voices = self.engine.getProperty('voices')
-        if len(voices) > 1:
-            self.engine.setProperty('voice', voices[1].id)
+        self.rate = rate
+        self.volume = volume
+        engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        self._voice_id = next((v.id for v in voices if 'en' in v.id.lower()), None)
+        engine.stop()
 
     def speak(self, text: str):
-        """Speaks the text aloud and blocks until finished."""
         print(f"[TTS] Saying: {text}")
-        self.engine.say(text)
-        self.engine.runAndWait()
-        # Small padding pause to let the audio hardware clear before listening
+        engine = pyttsx3.init()
+        engine.setProperty('rate', self.rate)
+        engine.setProperty('volume', self.volume)
+        if self._voice_id:
+            engine.setProperty('voice', self._voice_id)
+        engine.say(text)
+        engine.runAndWait()
+        engine.stop()
         time.sleep(0.5)

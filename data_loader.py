@@ -2,8 +2,7 @@ import json
 import os
 from datetime import datetime
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "session_config.json")
-
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "json/session_config.json")
 def get_season(date):
     month = date.month
     if month in [12, 1, 2]:

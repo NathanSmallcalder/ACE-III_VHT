@@ -97,6 +97,16 @@ def scoring_node(state: ACEState) -> dict:
 
     last_message = state['messages'][-1].content
 
+    expected_answers = question['answers']
+    prompts = get_sub_prompts(question)
+    is_multi = bool(prompts)
+
+    if prompts and sub_index < len(prompts):
+        asked_text = prompts[sub_index]
+    else:
+        spoken = parse_spoken_prompts(question)
+        asked_text = spoken[0] if spoken else question["question_text"]
+
     # Stochastic admission gate: decides whether the deterministic scorer runs.
     # Non-answer + under the cap -> re-prompt without scoring.
     # Non-answer + cap hit -> fall through and score whatever was given.
@@ -104,13 +114,10 @@ def scoring_node(state: ACEState) -> dict:
     max_repeats = question.get("max_attempts", 1)
     match_type = question.get("match_type", "")
     is_fluency = match_type in ("fluency_letter", "fluency_animal")
-    if not is_fluency and classify_turn(last_message) != "answer" and repeats < max_repeats:
+    if not is_fluency and classify_turn(last_message, asked_text) != "answer" and repeats < max_repeats:
         return {"needs_repeat": True, "repeat_count": repeats + 1}
 
     # --- deterministic marking from here down ---
-    expected_answers = question['answers']
-    prompts = get_sub_prompts(question)
-    is_multi = bool(prompts)
 
     if is_multi:
         score = score_question(last_message, question, sub_index=sub_index) if sub_index < len(expected_answers) else 0

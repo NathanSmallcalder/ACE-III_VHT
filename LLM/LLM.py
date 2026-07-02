@@ -16,5 +16,5 @@ def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
         stop=["<|im_end|>", "<|endoftext|>"],
     )
 
-llm_strict = _build(temperature=0.0, max_tokens=20)   # classify_turn — deterministic
+llm_strict = _build(temperature=0.0, max_tokens=200)  # classify_turn — deterministic
 llm_warm   = _build(temperature=0.7, max_tokens=60)   # introduce, soften_repeat — natural
