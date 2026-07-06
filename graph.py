@@ -114,7 +114,10 @@ def scoring_node(state: ACEState) -> dict:
     max_repeats = question.get("max_attempts", 1)
     match_type = question.get("match_type", "")
     is_fluency = match_type in ("fluency_letter", "fluency_animal")
-    if not is_fluency and classify_turn(last_message, asked_text) != "answer" and repeats < max_repeats:
+    # Visual tasks return a saved image path, not spoken text — there's no
+    # turn to classify, the deterministic scorer judges the drawing directly.
+    skip_turn_gate = is_fluency or match_type == "visual"
+    if not skip_turn_gate and classify_turn(last_message, asked_text) != "answer" and repeats < max_repeats:
         return {"needs_repeat": True, "repeat_count": repeats + 1}
 
     # --- deterministic marking from here down ---

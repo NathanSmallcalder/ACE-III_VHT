@@ -238,6 +238,11 @@ def score_question(response, question, sub_index=None):
         return score_letter_fluency(response)
     if match_type == "fluency_animal":
         return score_animal_fluency(response)
+    if match_type == "visual":
+        if question.get("question_text", "").startswith("Clock:"):
+            from visual_tasks.clock_scorer import score_clock_image
+            return score_clock_image(response)["total"]
+        return None  # no automated scorer yet for this visual task
     if not answers:
         return 0
 

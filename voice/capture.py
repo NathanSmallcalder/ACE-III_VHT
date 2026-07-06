@@ -11,7 +11,7 @@ class AudioCapture:
         if model is not None:
             self.model = model
         else:
-            print("[Audio] Loading local Whisper model... (this may take a moment on first boot)")
+            print("[Audio] Loading Whisper model... (")
             self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
     def capture_response(self) -> str:
