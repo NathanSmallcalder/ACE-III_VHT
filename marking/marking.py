@@ -227,6 +227,33 @@ def score_mixed_list(response, answers):
             break
     return score
 
+def _score_clock_visual(image_path, response):
+    from visual_tasks.clock_scorer import score_clock_image
+    return score_clock_image(response)["total"]
+
+
+def _score_wire_cube_visual(image_path, response):
+    if not image_path:
+        return None
+    from visual_tasks.cube_scorer import score_cube_image
+    return score_cube_image(image_path, response)["total"]
+
+
+def _score_infinity_diagram_visual(image_path, response):
+    if not image_path:
+        return None
+    from visual_tasks.infinity_scorer import score_infinity_image
+    return score_infinity_image(image_path, response)["total"]
+
+
+# Maps a question_text prefix to its scorer. Extend here when a new visual task gets an automated scorer.
+VISUAL_SCORERS = {
+    "Clock": _score_clock_visual,
+    "Wire Cube": _score_wire_cube_visual,
+    "Infinity Diagram": _score_infinity_diagram_visual,
+}
+
+
 def score_question(response, question, sub_index=None):
     """Main dispatch. Returns None for manual questions (flag for review), int otherwise."""
     match_type = question.get("match_type", "fuzzy_list")
@@ -239,9 +266,10 @@ def score_question(response, question, sub_index=None):
     if match_type == "fluency_animal":
         return score_animal_fluency(response)
     if match_type == "visual":
-        if question.get("question_text", "").startswith("Clock:"):
-            from visual_tasks.clock_scorer import score_clock_image
-            return score_clock_image(response)["total"]
+        text = question.get("question_text", "")
+        for prefix, scorer in VISUAL_SCORERS.items():
+            if text.startswith(prefix + ":"):
+                return scorer(question.get("image"), response)
         return None  # no automated scorer yet for this visual task
     if not answers:
         return 0

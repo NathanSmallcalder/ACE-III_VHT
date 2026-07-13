@@ -50,19 +50,20 @@ def conversation_node(state: ACEState) -> dict:
         text = spoken[0] if spoken else question["question_text"]
 
     if state.get("needs_repeat"):
-        wrapper = rephrase_question(text)
-    elif not state["messages"]:
-        wrapper = introduce(_session_config["patient"]["name"])
-    elif sub_index == 0:
-        last_patient = next(
-            (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-            None
-        )
-        wrapper = acknowledge(last_patient) if last_patient else ""
+        spoken_text = rephrase_question(text)
     else:
-        wrapper = ""
+        if not state["messages"]:
+            wrapper = introduce(_session_config["patient"]["name"])
+        elif sub_index == 0:
+            last_patient = next(
+                (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
+                None
+            )
+            wrapper = acknowledge(last_patient) if last_patient else ""
+        else:
+            wrapper = ""
 
-    spoken_text = f"{wrapper} {text}".strip() if wrapper else text
+        spoken_text = f"{wrapper} {text}".strip() if wrapper else text
 
     print("Assessor:", spoken_text)
     _tts.speak(spoken_text)
@@ -142,7 +143,7 @@ def scoring_node(state: ACEState) -> dict:
     score = min(score, domain_cap - domain_score_so_far)
 
     current_scores[domain] = domain_score_so_far + score
-
+    print(f"Scored {score} points for question {q_index + 1} in domain '{domain}' (total: {current_scores[domain]})")
     return {
         "scores": current_scores,
         "sub_question_index": new_sub,

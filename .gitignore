@@ -1,5 +1,6 @@
 # Environment
 .env
+.venv/
 
 __pycache__/
 
@@ -8,5 +9,3 @@ visual_tasks/clock.png
 visual_tasks/infinity_diagram.png
 visual_tasks/wire_cube.png
 eval_results.csv
-
-voice.py

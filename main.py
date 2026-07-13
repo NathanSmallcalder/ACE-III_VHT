@@ -1,5 +1,6 @@
 from graph import graph, ACE_DATA
 
+
 DOMAIN_ORDER = list(ACE_DATA.keys())
 
 initial_state = {

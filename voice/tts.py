@@ -1,23 +1,14 @@
-import pyttsx3
-import time
+import sounddevice as sd
+from kokoro import KPipeline
 
 class TTSEngine:
-    def __init__(self, rate=150, volume=1.0):
-        self.rate = rate
-        self.volume = volume
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        self._voice_id = next((v.id for v in voices if 'en' in v.id.lower()), None)
-        engine.stop()
+    def __init__(self, voice="af_heart", speed=1.0, lang_code="a"):
+        self.voice = voice
+        self.speed = speed
+        self._pipeline = KPipeline(lang_code=lang_code)
 
     def speak(self, text: str):
         print(f"[TTS] Saying: {text}")
-        engine = pyttsx3.init()
-        engine.setProperty('rate', self.rate)
-        engine.setProperty('volume', self.volume)
-        if self._voice_id:
-            engine.setProperty('voice', self._voice_id)
-        engine.say(text)
-        engine.runAndWait()
-        engine.stop()
-        time.sleep(0.5)
+        for _, _, audio in self._pipeline(text, voice=self.voice, speed=self.speed):
+            sd.play(audio.numpy(), samplerate=24000)
+            sd.wait()

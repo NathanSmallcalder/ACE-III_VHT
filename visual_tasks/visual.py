@@ -110,21 +110,22 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict) -> 
     spoken = parse_spoken_prompts(question)
     text = spoken[0] if spoken else question["question_text"]
 
-    if state.get("needs_repeat"):
-        wrapper = rephrase_question(text)
-    elif not state["messages"]:
-        wrapper = introduce(session_config["patient"]["name"])
-    else:
-        last_patient = next(
-            (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-            None
-        )
-        wrapper = acknowledge(last_patient) if last_patient else ""
-
     if question.get("image"):
         Image.open(question["image"]).show()
 
-    spoken_text = f"{wrapper} {text}".strip() if wrapper else text
+    if state.get("needs_repeat"):
+        spoken_text = rephrase_question(text)
+    else:
+        if not state["messages"]:
+            wrapper = introduce(session_config["patient"]["name"])
+        else:
+            last_patient = next(
+                (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
+                None
+            )
+            wrapper = acknowledge(last_patient) if last_patient else ""
+
+        spoken_text = f"{wrapper} {text}".strip() if wrapper else text
     print("Assessor:", spoken_text)
 
     if _is_draw_task(question):

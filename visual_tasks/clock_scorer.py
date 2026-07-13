@@ -5,15 +5,26 @@ import json
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
+# LLM/LLM.py
+from langchain_openai import ChatOpenAI
+
+# Single source of truth for the backend connection
+_BASE_URL = "http://localhost:1234/v1"
+_API_KEY  = "lm-studio"
+_MODEL    = "google/gemma-4-e4b"
 
 load_dotenv()
 
 # ── LLM setup ────────────────────────────────────────────────────────────────
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.1-flash-lite",
-    google_api_key=os.environ["GOOGLE_API_KEY"],
-    temperature=0.0,
-)
+def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
+    return ChatOpenAI(
+        base_url=_BASE_URL,
+        api_key=_API_KEY,
+        model=_MODEL,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stop=["<|im_end|>", "<|endoftext|>"],
+    )
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
 CLOCK_PROMPT = """You are analysing a hand-drawn clock image for clinical scoring purposes.
@@ -43,7 +54,7 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
 }
 
 Rules for hands: a hand's direction is the number its TIP points toward from the centre. If a hand has an arrowhead, follow the arrow. Do not report the number nearest the hand's shaft.
-"""
+""" 
 
 MIME_TYPES = {
     ".jpg": "image/jpeg",
@@ -51,7 +62,7 @@ MIME_TYPES = {
     ".png": "image/png",
     ".webp": "image/webp",
 }
-
+llm = _build(0.0, 20000)
 
 def _describe_clock(image_path: str) -> dict:
     """Send the clock drawing to the VLM and parse its structured description."""
