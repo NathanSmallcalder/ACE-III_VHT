@@ -4,8 +4,11 @@
 
 __pycache__/
 
-
 visual_tasks/clock.png
 visual_tasks/infinity_diagram.png
 visual_tasks/wire_cube.png
+visual_tasks/writing.png
 eval_results.csv
+
+# Contains patient PII (name, DOB, assessor) — never commit real session results
+results/

@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 # Single source of truth for the backend connection
 _BASE_URL = "http://localhost:1234/v1"
 _API_KEY  = "lm-studio"
-_MODEL    = "google/gemma-4-e4b"
+_MODEL    = "qwen/qwen3-vl-4b"
 
 load_dotenv()
 

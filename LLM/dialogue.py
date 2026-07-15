@@ -51,7 +51,6 @@ def rephrase_question(question_text: str) -> str:
 # Patient Needs a Repeat
 # Patient is Off Topic
 # Patient's Answer is Incomplete
-
 LABELS = {"answer", "repeat", "off_topic", "incomplete"}
 
 def classify_turn(last_response: str, question_text: str = "") -> str:
@@ -87,21 +86,15 @@ def classify_turn(last_response: str, question_text: str = "") -> str:
             "Question asked: What is today's date?\nPatient said: first\n-> answer\n"
             "Question asked: What is today's date?\nPatient said: the first\n-> answer\n"
             "Question asked: What season is it?\nPatient said: Summer, summer, summer.\n-> answer\n"
-            "Question asked: What day of the week is it?\nPatient said: You and me and Sal.\n-> off_topic\n"
             "Question asked: What day of the week is it?\nPatient said: What? Can you repeat that?\n-> repeat\n"
             "Question asked: What month is it?\nPatient said: Um, I think, I think it is...\n-> incomplete"
         )),
         HumanMessage(content=f"Question asked: {question_text}\nPatient said: {last_response}")
     ])
-    # The backing model reasons in prose before concluding, so the label may not
-    # be the first token (or even the only word) in the response. Scan the whole
-    # reply and take the last label mentioned, since that's the model's conclusion.
+
     content = out.content.strip().lower()
     matches = re.findall(r"\b(" + "|".join(LABELS) + r")\b", content)
     if matches:
         return matches[-1]
-    # Unparseable output must not default to "answer": that silently scores the
-    # turn and advances past it. Defaulting to "repeat" just re-asks the
-    # question, which is safe and bounded by max_attempts.
     return "repeat"
 

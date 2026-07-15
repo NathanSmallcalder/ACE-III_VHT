@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 # Single source of truth for the backend connection
 _BASE_URL = "http://localhost:1234/v1"
 _API_KEY  = "lm-studio"
-_MODEL    = "openai/gpt-oss-20b"
+_MODEL    = "qwen/qwen3-vl-4b"
 
 def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
     return ChatOpenAI(

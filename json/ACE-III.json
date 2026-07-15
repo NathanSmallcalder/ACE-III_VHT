@@ -40,6 +40,7 @@
                     "score_cap": 3,
                     "match_type": "fuzzy_list",
                     "max_attempts": 3,
+                    "score_first_attempt_only": true,
                     "answers": ["lemon", "key", "ball"],
                     "image": null
                 },
@@ -69,6 +70,8 @@
                     "instructions": "Speak: 'I am going to give you a name and address and I would like you to repeat them after me. We will do this three times so you have a chance to learn it. I will ask you again later.' Speak: 'Harry Barnes, 73 Orchard Close, Kingsbridge, Devon.' Wait for a response. Repeat the name and address for up to 3 trials total.",
                     "score_cap": 7,
                     "match_type": "mixed_list",
+                    "trials": 3,
+                    "score_final_trial_only": true,
                     "answers": ["Harry", "Barnes", "73", "Orchard", "Close", "Kingsbridge", "Devon"],
                     "image": null
                 },
@@ -76,7 +79,7 @@
                     "question_text": "Retrograde memory: Name of the current UK Prime Minister.",
                     "instructions": "Speak: 'Can you tell me the name of the current Prime Minister?' Wait for a response.",
                     "score_cap": 1,
-                    "match_type": "fuzzy",
+                    "match_type": "person_name",
                     "answers": ["DYNAMIC:uk_prime_minister"],
                     "image": null
                 },
@@ -84,7 +87,7 @@
                     "question_text": "Retrograde memory: Name of the first female UK Prime Minister.",
                     "instructions": "Speak: 'Can you tell me the name of the first female Prime Minister?' Wait for a response.",
                     "score_cap": 1,
-                    "match_type": "fuzzy",
+                    "match_type": "person_name",
                     "answers": ["Margaret Thatcher", "Thatcher"],
                     "image": null
                 },
@@ -92,7 +95,7 @@
                     "question_text": "Retrograde memory: Name of the current President of the United States.",
                     "instructions": "Speak: 'Can you tell me the name of the current President of the United States?' Wait for a response.",
                     "score_cap": 1,
-                    "match_type": "fuzzy",
+                    "match_type": "person_name",
                     "answers": ["DYNAMIC:us_president"],
                     "image": null
                 },
@@ -100,23 +103,26 @@
                     "question_text": "Retrograde memory: Name of the US President assassinated in the 1960s.",
                     "instructions": "Speak: 'Can you name the President of the United States who was assassinated in the 1960s?' Wait for a response.",
                     "score_cap": 1,
-                    "match_type": "fuzzy",
+                    "match_type": "person_name",
                     "answers": ["John F. Kennedy", "John Kennedy", "Kennedy", "JFK"],
                     "image": null
                 },
                 {
                     "question_text": "Delayed recall: Recall the name and address from earlier.",
-                    "instructions": "Speak: 'Now, tell me what you remember about that name and address we were repeating at the beginning.' Wait for a response. Record which elements were recalled and which were missed for use in the recognition task.",
+                    "instructions": "Speak: 'Now, tell me what you remember about that name and address we were repeating at the beginning.' Wait for a response.",
                     "score_cap": 7,
                     "match_type": "mixed_list",
+                    "recall_key": "name_address",
                     "answers": ["Harry", "Barnes", "73", "Orchard", "Close", "Kingsbridge", "Devon"],
                     "image": null
                 },
                 {
                     "question_text": "Recognition: Identify correct name and address elements from choices.",
-                    "instructions": "Administer only for elements not recalled in the delayed recall task. If all seven elements were recalled, skip this question. For each unrecalled element, speak the corresponding prompt and choices: (1) 'Was the name Jerry Barnes, Harry Barnes, or Harry Bradford?' Wait for a response. (2) 'Was the number 37, 73, or 76?' Wait for a response. (3) 'Was the street Orchard Place, Oak Close, or Orchard Close?' Wait for a response. (4) 'Was the town Oakhampton, Kingsbridge, or Dartington?' Wait for a response. (5) 'Was the county Devon, Dorset, or Somerset?' Wait for a response.",
+                    "instructions": "Elements already credited in the delayed recall task are skipped automatically. Speak: 'Was the name Jerry Barnes, Harry Barnes, or Harry Bradford?' Wait for a response. Speak: 'Was the number 37, 73, or 76?' Wait for a response. Speak: 'Was the street Orchard Place, Oak Close, or Orchard Close?' Wait for a response. Speak: 'Was the town Oakhampton, Kingsbridge, or Dartington?' Wait for a response. Speak: 'Was the county Devon, Dorset, or Somerset?' Wait for a response.",
                     "score_cap": 5,
                     "match_type": "mixed_list",
+                    "recall_key": "name_address",
+                    "element_recall_indices": [[0, 1], [2], [3, 4], [5], [6]],
                     "answers": ["Harry Barnes", "73", "Orchard Close", "Kingsbridge", "Devon"],
                     "image": null
                 }
@@ -168,6 +174,7 @@
                     "score_cap": 2,
                     "match_type": "fuzzy_list",
                     "max_attempts": 2,
+                    "sub_score_bands": [[4, 4, 2], [3, 3, 1], [0, 2, 0]],
                     "answers": ["caterpillar", "eccentricity", "unintelligible", "statistician"],
                     "image": null
                 },
@@ -175,7 +182,7 @@
                     "question_text": "Sentence repetition: Repeat the phrase - All that glitters is not gold.",
                     "instructions": "Speak: 'I would like you to repeat this phrase after me: All that glitters is not gold.' Wait for a response.",
                     "score_cap": 1,
-                    "match_type": "fuzzy",
+                    "match_type": "sentence_repetition",
                     "answers": ["All that glitters is not gold"],
                     "image": null
                 },
@@ -183,7 +190,7 @@
                     "question_text": "Sentence repetition: Repeat the phrase - A stitch in time saves nine.",
                     "instructions": "Speak: 'Now repeat this phrase: A stitch in time saves nine.' Wait for a response.",
                     "score_cap": 1,
-                    "match_type": "fuzzy",
+                    "match_type": "sentence_repetition",
                     "answers": ["A stitch in time saves nine"],
                     "image": null
                 },
@@ -192,7 +199,7 @@
                     "instructions": "Show image to participant. Speak: 'I am going to show you some pictures on the screen. Please name each one.' Point to each picture in order from top-left to bottom-right. Wait for a response.",
                     "score_cap": 12,
                     "match_type": "fuzzy_list",
-                    "answers": ["spoon", "book", "kangaroo", "penguin", "anchor", "camel", "harp", "rhinoceros", "barrel", "crown", "crocodile", "accordion"],
+                    "answers": ["spoon", "book", "kangaroo", "wallaby", "penguin", "anchor", "camel", "dromedary", "harp", "rhinoceros", "rhino", "barrel", "keg", "tub", "crown", "crocodile", "alligator", "accordion", "piano accordion", "squeeze box"],
                     "image": "images/page3_img3.png"
                 },
                 {
@@ -231,9 +238,9 @@
                     "question_text": "Reading: Read the following words aloud - sew, pint, soot, dough, height.",
                     "instructions": "Show the word list to participant on screen: sew, pint, soot, dough, height. Speak: 'I would like you to read these words aloud.' Wait for a response.",
                     "score_cap": 1,
-                    "match_type": "manual",
+                    "match_type": "all_correct_list",
                     "answers": ["sew", "pint", "soot", "dough", "height"],
-                    "image": null
+                    "image": "images/reading_words.png"
                 }
             ]
         },

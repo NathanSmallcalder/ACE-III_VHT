@@ -5,7 +5,7 @@ DOMAIN_ORDER = list(ACE_DATA.keys())
 
 initial_state = {
     "messages": [],
-    "current_domain": DOMAIN_ORDER[0], 
+    "current_domain": "Visuospatial",#DOMAIN_ORDER[0], 
     "question_index": 0,
     "sub_question_index": 0,
     "question_score": 0,
@@ -14,6 +14,9 @@ initial_state = {
     "complete": False,
     "needs_repeat": False,
     "repeat_count": 0,
+    "reprompt_kind": None,  # None | "season" | "name" | "leader" | "trial" — which handler's reprompt is active
+    "turn_progress": 0,     # generic per-question counter, meaning depends on the active handler
+    "recall_matches": {},   # recall_key -> per-answer bool list, for recognition-task skip logic
 }
 
 if __name__ == "__main__":

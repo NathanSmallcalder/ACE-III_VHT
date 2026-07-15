@@ -1,10 +1,6 @@
 import re
 from word2number import w2n
 
-# word2number only understands cardinal words ("one", "twenty"), not ordinal
-# words ("first", "twentieth") — digit-form ordinals ("1st") are already
-# handled by clean_response's suffix-stripping regex, but word-form ordinals
-# need to be mapped back to their cardinal counterpart before w2n can parse them.
 _ORDINAL_WORDS = {
     "first": "one", "second": "two", "third": "three", "fourth": "four",
     "fifth": "five", "sixth": "six", "seventh": "seven", "eighth": "eight",
@@ -20,9 +16,14 @@ def clean_response(text):
     text = re.sub(r'\s+', ' ', text)
     return text.lower().strip()
 
+_NUMBER_WORDS = set(w2n.american_number_system.keys())
+
 # e.g Converts 85 into eighty-five
 def normalise_number(text):
     text = " ".join(_ORDINAL_WORDS.get(w, w) for w in text.split())
+
+    if not all(w.isdigit() or w in _NUMBER_WORDS for w in text.split()):
+        return text
     try:
         return str(w2n.word_to_num(text))
     except ValueError:

@@ -1,10 +1,10 @@
 import numpy as np
 import sounddevice as sd
 from faster_whisper import WhisperModel
-from voice.config import WHISPER_RATE, AUDIO_CHUNK, SILENCE_THRESHOLD, SILENCE_DURATION, MAX_RESPONSE_DURATION
+from voice.config import NO_SPEECH_TIMEOUT, WHISPER_RATE, AUDIO_CHUNK, SILENCE_THRESHOLD, SILENCE_DURATION, MAX_RESPONSE_DURATION
 
 class AudioCapture:
-    def __init__(self, model_size="small", silence_timeout=SILENCE_DURATION, model=None):
+    def __init__(self, model_size="medium", silence_timeout=SILENCE_DURATION, model=None):
         self.sample_rate = WHISPER_RATE
         self.silence_timeout = silence_timeout
 
@@ -46,5 +46,5 @@ class AudioCapture:
 
         audio_data = np.concatenate(recording_buffer, axis=0).flatten()
 
-        segments, _ = self.model.transcribe(audio_data, beam_size=5)
+        segments, _ = self.model.transcribe(audio_data, beam_size=5,language="en", word_timestamps=False, vad_filter=True, vad_parameters={"min_silence_duration_ms": 500})
         return " ".join([segment.text for segment in segments]).strip()

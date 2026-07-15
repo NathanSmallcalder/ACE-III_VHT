@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 # Used by cube_scorer.py and infinity_scorer.py (clock_scorer.py keeps its own copy).
 BASE_URL = "http://localhost:1234/v1"
 API_KEY  = "lm-studio"
-MODEL    = "google/gemma-4-e4b"
+MODEL    = "qwen/qwen3-vl-4b"
 
 MIME_TYPES = {
     ".jpg": "image/jpeg",
@@ -14,7 +14,6 @@ MIME_TYPES = {
     ".png": "image/png",
     ".webp": "image/webp",
 }
-
 
 def build_client(temperature: float, max_tokens: int) -> ChatOpenAI:
     return ChatOpenAI(

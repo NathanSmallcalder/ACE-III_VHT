@@ -15,7 +15,6 @@ LETTER_FLUENCY_BANDS = [
     (18, float("inf"), 7)
 ]
 
-
 CATEGORY_FLUENCY_BANDS = [
     (0, 4, 0),
     (5, 6, 1),
@@ -31,6 +30,7 @@ FUZZY_THRESHOLD = 90
 
 _ANIMALS = None
 
+""" """
 def phonetic_equal(a, b):
     pa, sa = doublemetaphone(a)
     pb, sb = doublemetaphone(b)
@@ -97,6 +97,56 @@ def score_fuzzy(response, answers):
                     return 1
     return 0
 
+_NAME_FILLER_WORDS = {
+    "his", "her", "its", "it's", "name", "is", "was", "the", "a", "an",
+    "um", "uh", "i", "think", "that's", "that", "mr", "mrs", "ms", "dr",
+    "president", "minister", "prime",
+}
+_CORRECTION_MARKERS = {"no", "not", "sorry", "actually", "wait", "mean", "rather"}
+
+def _norm(text):
+    return normalise_number(clean_response(text)).split()
+
+def _same(a, b):
+    return rapidfuzz.fuzz.ratio(a, b) >= FUZZY_THRESHOLD or phonetic_equal(a, b)
+
+def score_person_name(response, answers):
+    """1 if the response names the person. A bare surname (with or without
+    filler/honorifics) counts; a surname preceded by a substantive but wrong
+    given name does not."""
+    full = [a for a in answers if len(a.split()) > 1]
+    if score_fuzzy(response, full):
+        return 1
+
+    surnames = [_norm(a)[0] for a in answers if len(a.split()) == 1]
+    if not surnames:
+        return 0
+
+    full_tokens = [_norm(a) for a in full]
+    words = _norm(response)
+
+    for surname in surnames:
+        # every accepted given-name sequence ending in this surname
+        givens = [t[:-1] for t in full_tokens if _same(t[-1], surname)]
+
+        for i, w in enumerate(words):
+            if not _same(w, surname):
+                continue
+
+            claimed, j = [], i - 1
+            while j >= 0 and words[j] not in _NAME_FILLER_WORDS \
+                         and words[j] not in _CORRECTION_MARKERS:
+                claimed.insert(0, words[j])
+                j -= 1
+
+            if not claimed:
+                return 1
+            if any(len(g) == len(claimed) and all(_same(x, y) for x, y in zip(claimed, g))
+                   for g in givens):
+                return 1
+ 
+    return 0
+
 def score_fuzzy_list(response, answers):
     """Each answer in list scored separately via sliding window."""
     score = 0
@@ -119,6 +169,24 @@ def score_fuzzy_list(response, answers):
             break
     return score
 
+def score_all_correct_list(response, answers):
+    """All-or-nothing: 1 point only if every item in the list was matched,
+    else 0. Used where the guide gives no partial credit (e.g. Reading:
+    'Score 1 point if all five words are read correctly')."""
+    return 1 if score_fuzzy_list(response, answers) == len(answers) else 0
+
+
+_ANIMAL_ROOTS = None
+
+def _get_animal_roots():
+    global _ANIMAL_ROOTS
+    if _ANIMAL_ROOTS is None:
+        _ANIMAL_ROOTS = set(wn.synsets("animal", pos=wn.NOUN))
+    return _ANIMAL_ROOTS
+
+def _is_animal_synset(synset):
+    roots = _get_animal_roots()
+    return synset in roots or bool(roots & set(synset.closure(lambda s: s.hypernyms())))
 
 def get_animals():
     animals = set()
@@ -128,29 +196,52 @@ def get_animals():
                 animals.add(lemma.name().lower().replace("_", " "))
     return animals
 
+def _drop_subsumed_categories(unique_valid):
+    """If a more specific animal word is also present, drop the higher-order
+    category word it's subsumed under (e.g. 'fish' dropped when 'salmon' and
+    'trout' are also said) — only the specific exemplars should count."""
+    synset_of = {}
+    for w in unique_valid:
+        for ss in wn.synsets(w.replace(" ", "_"), pos=wn.NOUN):
+            if _is_animal_synset(ss):
+                synset_of[w] = ss
+                break
+
+    to_drop = set()
+    for w, ss_w in synset_of.items():
+        for x, ss_x in synset_of.items():
+            if w != x and ss_w in ss_x.closure(lambda s: s.hypernyms()):
+                to_drop.add(w)
+                break
+    return unique_valid - to_drop
+
 def scaled_count(count, bands):
     for min_count, max_count, score in bands:
         if min_count <= count <= max_count:
             return score
     return 0
 
-def is_valid_p_word(word):
+def p_word_root(word):
+    """Return the dictionary root of `word` if it's a valid common P-word, else None.
+    Normalizing to the WordNet root (via morphy) merges perseverations and plurals
+    (pay/paid/pays -> pay, pot/pots -> pot) into a single countable word."""
     word = word.lower().strip()
     if not word.startswith("p"):
-        return False
-    synsets = wn.synsets(word)
-    if not synsets:
-        return False
-    for synset in synsets:
+        return None
+    root = wn.morphy(word)
+    if root is None:
+        return None
+    for synset in wn.synsets(root):
         for lemma in synset.lemmas():
-            if lemma.name().lower() == word and lemma.name()[0].islower():
-                return True
-    return False
+            if lemma.name().lower() == root and lemma.name()[0].islower():
+                return root
+    return None
 
 def score_letter_fluency(response):
     words = clean_response(response).split()
-    unique_valid = {w for w in set(words) if is_valid_p_word(w)}
-    return scaled_count(len(unique_valid), LETTER_FLUENCY_BANDS)
+    roots = {p_word_root(w) for w in words}
+    roots.discard(None)
+    return scaled_count(len(roots), LETTER_FLUENCY_BANDS)
 
 def score_animal_fluency(response):
     global _ANIMALS
@@ -168,9 +259,16 @@ def score_animal_fluency(response):
             used_indices.add(i + 1)
 
     for i, w in enumerate(words):
-        if i not in used_indices and w in _ANIMALS:
+        if i in used_indices:
+            continue
+        if w in _ANIMALS:
             unique_valid.add(w)
+        else:
+            root = wn.morphy(w, wn.NOUN)
+            if root and root in _ANIMALS:
+                unique_valid.add(root)
 
+    unique_valid = _drop_subsumed_categories(unique_valid)
     return scaled_count(len(unique_valid), CATEGORY_FLUENCY_BANDS)
 
 def parse_spoken_prompts(question: dict) -> list[str]:
@@ -179,8 +277,6 @@ def parse_spoken_prompts(question: dict) -> list[str]:
     chunks = instructions.split("Wait for a response.")
     prompts = []
     for chunk in chunks[:-1]:
-        # Find all Speak: '...' entries — lookahead ensures closing ' is not followed
-        # by a letter, so apostrophes inside text (today's) are handled correctly.
         speaks = re.findall(r"[Ss]peak[^']*'(.*?)'(?=[^a-zA-Z]|$)", chunk, re.DOTALL)
         if speaks:
             prompts.append(" ".join(speaks))
@@ -200,18 +296,19 @@ def get_sub_prompts(question: dict) -> list[str]:
         return prompts
     return []
 
-def score_mixed_list(response, answers):
-    """Each answer scored separately; numeric answers use integer match, strings use fuzzy."""
-    score = 0
-    matched = set()
+def score_mixed_list_detailed(response, answers):
+    """Like score_mixed_list but reports which answers matched, in answer order.
+    Used to carry per-element recall results into a later recognition task."""
+    matched_text = set()
+    matched = [False] * len(answers)
     response_words = clean_response(response).split()
 
-    for answer in answers:
+    for idx, answer in enumerate(answers):
         cleaned = clean_response(answer)
         normed = normalise_number(cleaned)
         is_number = normed.isdigit()
 
-        if answer in matched:
+        if cleaned in matched_text:
             continue
         for n in range(1, min(3, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
@@ -219,13 +316,17 @@ def score_mixed_list(response, answers):
                 window = normalise_number(window_raw)
                 hit = (window == normed) if is_number else (rapidfuzz.fuzz.ratio(window_raw, cleaned) >= FUZZY_THRESHOLD)
                 if hit:
-                    matched.add(answer)
-                    score += 1
+                    matched_text.add(cleaned)
+                    matched[idx] = True
                     break
             else:
                 continue
             break
-    return score
+    return matched
+
+def score_mixed_list(response, answers):
+    """Each answer scored separately; numeric answers use integer match, strings use fuzzy."""
+    return sum(score_mixed_list_detailed(response, answers))
 
 def _score_clock_visual(image_path, response):
     from visual_tasks.clock_scorer import score_clock_image
@@ -246,11 +347,19 @@ def _score_infinity_diagram_visual(image_path, response):
     return score_infinity_image(image_path, response)["total"]
 
 
+def _score_writing_visual(image_path, response):
+    if not response:
+        return None
+    from visual_tasks.writing_scorer import score_writing_image
+    return score_writing_image(response)["total"]
+
+
 # Maps a question_text prefix to its scorer. Extend here when a new visual task gets an automated scorer.
 VISUAL_SCORERS = {
     "Clock": _score_clock_visual,
     "Wire Cube": _score_wire_cube_visual,
     "Infinity Diagram": _score_infinity_diagram_visual,
+    "Writing": _score_writing_visual,
 }
 
 
@@ -275,14 +384,21 @@ def score_question(response, question, sub_index=None):
         return 0
 
     if sub_index is not None:
-        return score_fuzzy(response, [answers[sub_index]]) if sub_index < len(answers) else 0
+        if sub_index >= len(answers):
+            return 0
+        alt = answers[sub_index]
+        # Some dynamic sub-answers (e.g. date +/- tolerance) resolve to a list
+        # of acceptable alternatives rather than a single string.
+        return score_fuzzy(response, alt if isinstance(alt, list) else [alt])
 
     dispatch = {
         "exact":        score_exact,
         "integer":      score_integer,
         "fuzzy":        score_fuzzy,
         "fuzzy_list":   score_fuzzy_list,
+        "person_name":  score_person_name,
         "mixed_list":   score_mixed_list,
+        "all_correct_list": score_all_correct_list,
         "serial_sevens": lambda r, a: score_serial_sevens(r)
     }
     fn = dispatch.get(match_type)
