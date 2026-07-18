@@ -1,9 +1,6 @@
-import re
-import json
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
 
-from visual_tasks.vlm_client import build_client, encode_image
+from LLM.vlm import build_client, describe_images, save_vlm_response
 
 load_dotenv()
 
@@ -29,32 +26,8 @@ llm = build_client(0.0, 20000)
 
 
 def _describe_infinity(reference_path: str, drawn_path: str) -> dict:
-    """Send the reference infinity diagram and the patient's copy to the VLM and parse its structured comparison.
-    Returns {} on any connection failure or malformed/unexpected response, so callers always get a dict."""
-    try:
-        response = llm.invoke([
-            HumanMessage(content=[
-                {"type": "text", "text": INFINITY_PROMPT},
-                {"type": "image_url", "image_url": {"url": encode_image(reference_path)}},
-                {"type": "image_url", "image_url": {"url": encode_image(drawn_path)}},
-            ])
-        ])
-    except Exception:
-        return {}
-
-    raw = response.content
-    if isinstance(raw, list):
-        raw = raw[0]["text"]
-
-    # Strip markdown fences if model ignores instructions
-    raw = re.sub(r"^```json\s*|^```\s*|```$", "", raw.strip(), flags=re.MULTILINE).strip()
-
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-
-    return parsed if isinstance(parsed, dict) else {}
+    """Send the reference infinity diagram and the patient's copy to the VLM and parse its structured comparison."""
+    return describe_images(llm, INFINITY_PROMPT, [reference_path, drawn_path])
 
 
 def score_infinity(data: dict) -> dict:
@@ -76,7 +49,9 @@ def score_infinity(data: dict) -> dict:
 def score_infinity_image(reference_path: str, drawn_path: str) -> dict:
     """Compare a hand-drawn infinity diagram copy against its reference via VLM and score it against the ACE-III criteria."""
     data = _describe_infinity(reference_path, drawn_path)
-    return score_infinity(data)
+    result = score_infinity(data)
+    save_vlm_response("infinity_diagram", drawn_path, data, result)
+    return result
 
 
 if __name__ == "__main__":

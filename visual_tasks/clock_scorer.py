@@ -1,30 +1,9 @@
-import base64
 import os
-import re
-import json
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage
-# LLM/LLM.py
-from langchain_openai import ChatOpenAI
 
-# Single source of truth for the backend connection
-_BASE_URL = "http://localhost:1234/v1"
-_API_KEY  = "lm-studio"
-_MODEL    = "qwen/qwen3-vl-4b"
+from LLM.vlm import build_client, describe_images, save_vlm_response
 
 load_dotenv()
-
-# ── LLM setup ────────────────────────────────────────────────────────────────
-def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
-    return ChatOpenAI(
-        base_url=_BASE_URL,
-        api_key=_API_KEY,
-        model=_MODEL,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stop=["<|im_end|>", "<|endoftext|>"],
-    )
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
 CLOCK_PROMPT = """You are analysing a hand-drawn clock image for clinical scoring purposes.
@@ -56,41 +35,12 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
 Rules for hands: a hand's direction is the number its TIP points toward from the centre. If a hand has an arrowhead, follow the arrow. Do not report the number nearest the hand's shaft.
 """ 
 
-MIME_TYPES = {
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".png": "image/png",
-    ".webp": "image/webp",
-}
-llm = _build(0.0, 20000)
+llm = build_client(0.0, 20000)
+
 
 def _describe_clock(image_path: str) -> dict:
     """Send the clock drawing to the VLM and parse its structured description."""
-    ext = os.path.splitext(image_path)[1].lower()
-    mime_type = MIME_TYPES.get(ext, "image/png")
-
-    with open(image_path, "rb") as f:
-        image_b64 = base64.b64encode(f.read()).decode("utf-8")
-
-    response = llm.invoke([
-        HumanMessage(content=[
-            {"type": "text", "text": CLOCK_PROMPT},
-            {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
-        ])
-    ])
-
-    raw = response.content
-    if isinstance(raw, list):
-        raw = raw[0]["text"]
-
-    # Strip markdown fences if model ignores instructions
-    raw = re.sub(r"^```json\s*|^```\s*|```$", "", raw.strip(), flags=re.MULTILINE).strip()
-
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-
+    return describe_images(llm, CLOCK_PROMPT, [image_path])
 
 def score_clock(data: dict) -> dict:
     def get(field):
@@ -152,7 +102,9 @@ def score_clock(data: dict) -> dict:
 def score_clock_image(image_path: str) -> dict:
     """Describe a hand-drawn clock image via VLM and score it against the ACE-III clock criteria."""
     data = _describe_clock(image_path)
-    return score_clock(data)
+    result = score_clock(data)
+    save_vlm_response("clock", image_path, data, result)
+    return result
 
 
 if __name__ == "__main__":

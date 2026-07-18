@@ -4,7 +4,7 @@ from faster_whisper import WhisperModel
 from voice.config import NO_SPEECH_TIMEOUT, WHISPER_RATE, AUDIO_CHUNK, SILENCE_THRESHOLD, SILENCE_DURATION, MAX_RESPONSE_DURATION
 
 class AudioCapture:
-    def __init__(self, model_size="medium", silence_timeout=SILENCE_DURATION, model=None):
+    def __init__(self, model_size="large", silence_timeout=SILENCE_DURATION, model=None):
         self.sample_rate = WHISPER_RATE
         self.silence_timeout = silence_timeout
 
@@ -14,7 +14,10 @@ class AudioCapture:
             print("[Audio] Loading Whisper model... (")
             self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
-    def capture_response(self) -> str:
+    def capture_response(self, on_tick=None) -> str:
+        """`on_tick`, if given, is called once per audio chunk (~every
+        AUDIO_CHUNK samples) — main-thread only, e.g. to keep a Tk window's
+        event loop serviced during a long silent wait."""
         print("[Audio] Listening for response...")
 
         recording_buffer = []
@@ -26,6 +29,8 @@ class AudioCapture:
             while True:
                 chunk, overflowed = stream.read(AUDIO_CHUNK)
                 recording_buffer.append(chunk)
+                if on_tick is not None:
+                    on_tick()
 
                 energy = np.sqrt(np.mean(chunk**2))
 

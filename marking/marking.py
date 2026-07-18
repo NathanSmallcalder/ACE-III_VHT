@@ -175,6 +175,13 @@ def score_all_correct_list(response, answers):
     'Score 1 point if all five words are read correctly')."""
     return 1 if score_fuzzy_list(response, answers) == len(answers) else 0
 
+def score_sentence_repetition(response, answers):
+    """Whole-phrase fuzzy match. Unlike score_fuzzy's n-gram sliding window
+    (built for short answers), a repeated sentence must be judged as one
+    unit against the full expected phrase."""
+    expected = clean_response(answers[0])
+    return 1 if rapidfuzz.fuzz.ratio(clean_response(response), expected) >= FUZZY_THRESHOLD else 0
+
 
 _ANIMAL_ROOTS = None
 
@@ -350,8 +357,15 @@ def _score_infinity_diagram_visual(image_path, response):
 def _score_writing_visual(image_path, response):
     if not response:
         return None
-    from visual_tasks.writing_scorer import score_writing_image
+    from visual_tasks.writing import score_writing_image
     return score_writing_image(response)["total"]
+
+
+def _score_pen_paper_visual(image_path, response):
+    if not response:
+        return None
+    from visual_tasks.pen_paper_scorer import score_pen_paper_video
+    return score_pen_paper_video(response)["total"]
 
 
 # Maps a question_text prefix to its scorer. Extend here when a new visual task gets an automated scorer.
@@ -360,6 +374,7 @@ VISUAL_SCORERS = {
     "Wire Cube": _score_wire_cube_visual,
     "Infinity Diagram": _score_infinity_diagram_visual,
     "Writing": _score_writing_visual,
+    "Comprehension": _score_pen_paper_visual,
 }
 
 
@@ -399,7 +414,8 @@ def score_question(response, question, sub_index=None):
         "person_name":  score_person_name,
         "mixed_list":   score_mixed_list,
         "all_correct_list": score_all_correct_list,
-        "serial_sevens": lambda r, a: score_serial_sevens(r)
+        "serial_sevens": lambda r, a: score_serial_sevens(r),
+        "sentence_repetition": score_sentence_repetition,
     }
     fn = dispatch.get(match_type)
     return fn(response, answers) if fn else 0

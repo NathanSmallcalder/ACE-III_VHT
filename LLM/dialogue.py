@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from langchain_core.messages import SystemMessage, HumanMessage
 from LLM.LLM import llm_strict, llm_warm
 
-
+""" Introduce the patient to the assessment. """
 def introduce(patient_name: str) -> str:
     """Brief, warm one-time introduction spoken before the very first question of the session."""
     result = llm_warm.invoke([
@@ -19,7 +19,7 @@ def introduce(patient_name: str) -> str:
     ])
     return result.content.strip().strip('"')
 
-
+"""Short, natural acknowledgment of the patient's last answer, spoken before the next question."""
 def acknowledge(last_response: str) -> str:
     """Short, natural acknowledgment of the patient's last answer, spoken before the next question."""
     result = llm_warm.invoke([
@@ -33,13 +33,13 @@ def acknowledge(last_response: str) -> str:
     ])
     return result.content.strip().strip('"')
 
-
+""" Question Rephrasing """
 def rephrase_question(question_text: str) -> str:
     """Rephrased version of the question spoken when the patient didn't understand."""
     result = llm_warm.invoke([
         SystemMessage(content=(
             "You are a warm clinical assessor. The patient did not understand the question. "
-            "Reply with ONLY a brief (1-2 sentence) rephrased version of the question "
+            "Reply with ONLY a brief rephrased version of the question "
             "to help them understand. Do not add new information, do not judge their "
             "response, do not use quotes."
         )),

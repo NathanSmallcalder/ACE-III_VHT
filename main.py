@@ -5,7 +5,7 @@ DOMAIN_ORDER = list(ACE_DATA.keys())
 
 initial_state = {
     "messages": [],
-    "current_domain": "Visuospatial",#DOMAIN_ORDER[0], 
+    "current_domain": "Language",#DOMAIN_ORDER[0], 
     "question_index": 0,
     "sub_question_index": 0,
     "question_score": 0,

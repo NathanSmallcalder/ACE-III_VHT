@@ -9,6 +9,8 @@ numpy==2.5.1
 sounddevice==0.5.5
 faster-whisper==1.2.1
 pillow==12.3.0
+opencv-python==5.0.0.93
+imutils==0.5.4
 nltk==3.10.0
 Metaphone==0.6
 word2number==1.1

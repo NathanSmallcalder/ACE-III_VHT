@@ -4,6 +4,7 @@ from rapidfuzz import fuzz
 from PIL import Image
 import json
 import os
+import time
 from LLM.dialogue import *
 from marking.marking import *
 from voice.tts import TTSEngine
@@ -13,6 +14,8 @@ from datetime import datetime
 from data_loader import get_session_config, resolve_dynamic_answers, get_season_transition
 from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question
 from virtual_avatar.avatar import furhat_connect
+from ui.session_window import SessionWindow
+from LLM.vlm import set_gemini
 
 class ACEState(MessagesState):
     current_domain: str
@@ -29,10 +32,15 @@ class ACEState(MessagesState):
     recall_matches: dict  # recall_key -> per-answer bool list, for recognition-task skip logic
 
 _session_config = get_session_config()
+
+if _session_config.get("vlm_backend") == "gemini":
+    set_gemini(_session_config.get("gemini_model", "gemini-2.5-flash"))
+
 _furhat = furhat_connect()
 _tts = TTSEngine(_furhat)
 _audio = AudioCapture()
 _audio_fluency = AudioCapture(silence_timeout=FLUENCY_SILENCE_DURATION, model=_audio.model)
+_gui = SessionWindow()
 
 with open("json/ACE-III.json", "r") as f:
     ACE_DATA = json.load(f)["Domains"]
@@ -85,7 +93,6 @@ def _reprompt(kind: str) -> dict:
 
 
 # --- person_name: surname-only reprompt + outgoing-leader probe ---
-
 def _handle_person_name(state, question, response, domain, q_index, sub_index):
     outgoing = question.get("outgoing_leader")
 
@@ -123,7 +130,6 @@ def _reprompt_text_person_name(state, question, text):
 
 # --- word-learning trials (Registration): repeat up to max_attempts times to
 # help the patient learn, but only the *first* attempt counts for score ---
-
 def _handle_registration(state, question, response, domain, q_index, sub_index):
     max_trials = question.get("max_attempts", 3)
     trial = state.get("turn_progress", 0)
@@ -141,10 +147,6 @@ def _handle_registration(state, question, response, domain, q_index, sub_index):
             "question_score": first_attempt_score,
         }
 
-    # first_attempt_score is already fully determined — don't let
-    # _finalize_score's question_score_so_far cap-subtraction (meant for
-    # incremental sub-answer sums) double-count the value we stashed there
-    # between trials; present a fresh view for that calculation.
     return _finalize_score({**state, "question_score": 0}, question, domain, q_index, first_attempt_score, 0)
 
 
@@ -152,12 +154,8 @@ def _reprompt_text_registration(state, question, text):
     return text if state.get("reprompt_kind") == "registration" else None
 
 
-# --- season transition leniency (Orientation to Time, season sub-question only) ---
 def _handle_season(state, question, response, domain, q_index, sub_index):
     expected_answers = question["answers"]
-    # Near a season boundary: if the patient names the *upcoming* season
-    # instead of the current one, ask them to confirm rather than marking it
-    # wrong outright — only score correct if they then name the true season.
     if (
         state.get("reprompt_kind") != "season" and _SEASON_ADJACENT
         and score_fuzzy(response, [_SEASON_ADJACENT]) and not score_fuzzy(response, [_SEASON_TRUE])
@@ -280,17 +278,17 @@ def conversation_node(state: ACEState) -> dict:
         return {"messages": [AIMessage(content=""), HumanMessage(content="")]}
 
     if question.get("match_type") == "visual":
-        return run_visual_task(state, question, _tts, _audio, _session_config)
+        return run_visual_task(state, question, _tts, _audio, _session_config, _gui)
 
     if is_click_point_question(question):
         total_questions = len(ACE_DATA[domain]["questions"])
         next_question = ACE_DATA[domain]["questions"][q_index + 1] if q_index + 1 < total_questions else None
-        return run_click_task(state, question, _tts, _session_config, next_question)
+        return run_click_task(state, question, _tts, _session_config, next_question, _gui)
 
     # Show once, on the first presentation of the question — not on every
     # repeat/reprompt turn, which would otherwise reopen a new viewer window.
     if question.get("image") and not state.get("needs_repeat"):
-        Image.open(question["image"]).show()
+        _gui.show_stimulus_image(question["image"])
 
     prompts = get_sub_prompts(question)
     if prompts and sub_index < len(prompts):
@@ -321,19 +319,18 @@ def conversation_node(state: ACEState) -> dict:
         spoken_text = f"{wrapper} {text}".strip() if wrapper else text
 
     print("Assessor:", spoken_text)
+    
+    _gui.add_message("assessor", spoken_text)
     _tts.speak(spoken_text)
 
     for _ in range(5):
-        user_input = _audio_fluency.capture_response() if domain == "Fluency" else _audio.capture_response()
-
+        user_input = (
+            _audio_fluency.capture_response(on_tick=_gui.pump) if domain == "Fluency"
+            else _audio.capture_response(on_tick=_gui.pump)
+        )
         if not user_input:
             print("[no response detected]")
             continue
-
-        if fuzz.partial_ratio(user_input.lower(), spoken_text.lower()) > 75:
-            print("echo detected, ignoring")
-            continue
-
         break
     else:
         user_input = ""
@@ -342,6 +339,7 @@ def conversation_node(state: ACEState) -> dict:
         return {"needs_repeat": True}
 
     print("Patient:", user_input)
+    _gui.add_message("patient", user_input)
     return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=user_input)]}
 
 
@@ -397,6 +395,8 @@ def scoring_node(state: ACEState) -> dict:
 
     result = _finalize_score(state, question, domain, q_index, score, new_sub)
     recall_key = question.get("recall_key")
+    print(f"Scoring node: domain={domain}, question={q_index + 1}, sub={sub_index + 1}, "
+          f"score={score}, new_sub={new_sub}, recall_key={recall_key}, is_multi={is_multi}")
     if recall_key and not is_multi:
         # Stash per-element results so a later recognition question can skip
         # elements already credited here.
@@ -460,6 +460,10 @@ def report_node(state: ACEState) -> dict:
             "interpretation": interpretation,
         }, f, indent=2)
     print(f"\nSaved results to {out_path}")
+
+    _gui.add_message("assessor", "Thank you — that concludes the assessment.")
+    time.sleep(3)
+    _gui.close()
 
     return {"complete": True}
 
