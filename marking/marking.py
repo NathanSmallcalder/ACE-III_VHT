@@ -341,17 +341,13 @@ def _score_clock_visual(image_path, response):
 
 
 def _score_wire_cube_visual(image_path, response):
-    if not image_path:
-        return None
     from visual_tasks.cube_scorer import score_cube_image
-    return score_cube_image(image_path, response)["total"]
+    return score_cube_image(response)["total"]
 
 
 def _score_infinity_diagram_visual(image_path, response):
-    if not image_path:
-        return None
     from visual_tasks.infinity_scorer import score_infinity_image
-    return score_infinity_image(image_path, response)["total"]
+    return score_infinity_image(response)["total"]
 
 
 def _score_writing_visual(image_path, response):

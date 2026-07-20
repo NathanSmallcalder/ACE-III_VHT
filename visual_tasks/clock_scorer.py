@@ -20,8 +20,8 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
   "missing_numbers": "<comma-separated list of integers, or none>",
   "duplicated_numbers": "<comma-separated list of integers, or none>",
   "numbers_in_correct_order": "<yes/no — 1 to 12 in clockwise sequence>",
-  "numbers_outside_circle": "<yes/no — any numbers clearly outside the circle boundary, with visible space between number and circle edge>",
-  "numbers_evenly_spaced": "<yes/approximately/no — evenly distributed around the full circle, not bunched into one region>",
+  "numbers_outside_circle": "<yes/no — any numbers where the entire digit is drawn on the exterior side of the circle line>",
+  "numbers_evenly_spaced": "<yes/approximately/no — evenly distributed around the full circle, not bunched into one region. A slight rotation of the overall clock face is acceptable.>",
 
   "hand_count": "<0/1/2/more>",
   "hands_originate_from_centre": "<yes/no/unclear/none — do the hands start from roughly the centre of the clock face?>",
@@ -43,27 +43,45 @@ def _describe_clock(image_path: str) -> dict:
     return describe_images(llm, CLOCK_PROMPT, [image_path])
 
 def score_clock(data: dict) -> dict:
+    """Score against the ACE-III / M-ACE clock criteria (0-5).
+
+    Branch comments quote the ACE-III and M-ACE English Guide 2017 (updated 12/2/19).
+    """
     def get(field):
         return str(data.get(field, "")).strip().lower()
 
+    # ── Circle: "1 point maximum if it is a reasonable circle" ──
     circle_score = 1 if get("circle_present") == "yes" and get("circle_closed") == "yes" else 0
 
+    # ── Numbers ──
     all_12          = get("all_12_present") == "yes"
+    duplicates      = get("duplicated_numbers") not in ("none", "")
     numbers_outside = get("numbers_outside_circle") == "yes"
+    correct_order   = get("numbers_in_correct_order") == "yes"
     spacing         = get("numbers_evenly_spaced")
 
-    if all_12 and not numbers_outside and spacing in ("yes", "approximately"):
-        numbers_score = 2
-    elif all_12:
-        numbers_score = 1
-    else:
+    if not all_12 or duplicates:
+        # "0 points if not all numbers are included"
+        # Duplicates → 0 per the guide's exemplar: "there are 2 number 10s (0)"
         numbers_score = 0
+    elif (not numbers_outside and correct_order
+          and spacing in ("yes", "approximately")):
+        # "2 points if all numbers are included within the circle and numbers are
+        #  evenly distributed. A slight rotation to the overall clock face is acceptable."
+        # (correct_order is our interpretation: a jumbled sequence is not treated
+        #  as evenly distributed, even if geometrically spread out.)
+        numbers_score = 2
+    else:
+        # "1 point if all numbers are included but the numbers are either outside
+        #  of the circle or the numbers are unevenly spaced"
+        numbers_score = 1
 
-    TARGET = {2, 5}  # ten past five: minute→2, hour→5
+    # ── Hands ──
+    HOUR_TARGET, MINUTE_TARGET = 5, 2  # ten past five: hour→5, minute→2
+    TARGET = {HOUR_TARGET, MINUTE_TARGET}
 
-    hand_count    = get("hand_count")
-    same_length   = get("hands_same_length")
-    lengths_differ = same_length == "no"  # hands_same_length: no → they differ
+    hand_count  = get("hand_count")
+    same_length = get("hands_same_length")
 
     def to_int(val):
         try:
@@ -71,25 +89,40 @@ def score_clock(data: dict) -> dict:
         except (ValueError, TypeError):
             return None
 
-    h1 = to_int(get("shorter_hand_points_to"))
-    h2 = to_int(get("longer_hand_points_to"))
-    hand_positions = {x for x in [h1, h2] if x is not None}
-    both_correct = hand_positions == TARGET
-    one_correct  = len(hand_positions & TARGET) == 1
+    h1 = to_int(get("shorter_hand_points_to"))  # shorter (hour) hand's target
+    h2 = to_int(get("longer_hand_points_to"))   # longer (minute) hand's target
 
-    if hand_count in ("0", "1", ""):
+    if hand_count != "2":
+        # "0 point if one hand is drawn" (and no credit without hands)
         hands_score = 0
-    elif hand_count == "2":
-        if both_correct and lengths_differ:
+    else:
+        hand_positions = {x for x in [h1, h2] if x is not None}
+        both_numbers_correct = hand_positions == TARGET
+        # Correct lengths means the hands genuinely differ in length AND the
+        # shorter one is on the hour target, the longer on the minute target.
+        lengths_differ  = same_length == "no"
+        length_correct  = lengths_differ and h1 == HOUR_TARGET and h2 == MINUTE_TARGET
+
+        if both_numbers_correct and length_correct:
+            # "2 points if both hands are drawn, lengths are correct and placed
+            #  on correct numbers"
             hands_score = 2
-        elif both_correct:
+        elif both_numbers_correct:
+            # "1 point if both hands are drawn and placed on the correct numbers
+            #  but lengths are incorrect"
             hands_score = 1
-        elif one_correct and lengths_differ:
+        elif lengths_differ and (h1 == HOUR_TARGET or h2 == MINUTE_TARGET):
+            # "1 point if both hands are drawn but only one hand is placed on the
+            #  correct number and drawn with correct length"
+            # lengths_differ guard: with even lengths the shorter/longer slots are
+            # arbitrary, and per the guide's exemplar "one number correct but
+            # lengths are even" scores 0.
             hands_score = 1
         else:
+            # "0 points if two hands are drawn but both lengths are incorrect and
+            #  one number is correct" / "0 point if two hands are drawn but both
+            #  lengths and numbers are incorrect"
             hands_score = 0
-    else:
-        hands_score = 0  # more than 2 hands
 
     return {
         "circle":  circle_score,
@@ -99,10 +132,19 @@ def score_clock(data: dict) -> dict:
     }
 
 
+N_SAMPLES = 3
+
+
 def score_clock_image(image_path: str) -> dict:
-    """Describe a hand-drawn clock image via VLM and score it against the ACE-III clock criteria."""
-    data = _describe_clock(image_path)
-    result = score_clock(data)
+    """Describe a hand-drawn clock image via VLM N_SAMPLES times and score it against
+    the ACE-III clock criteria, taking the majority-vote total across samples."""
+    from collections import Counter
+
+    samples = [(data := _describe_clock(image_path), score_clock(data)) for _ in range(N_SAMPLES)]
+    totals = [result["total"] for _, result in samples]
+    majority_total = Counter(totals).most_common(1)[0][0]
+    data, result = next(s for s in samples if s[1]["total"] == majority_total)
+
     save_vlm_response("clock", image_path, data, result)
     return result
 
@@ -116,8 +158,9 @@ if __name__ == "__main__":
     print("\n── Parsed Fields ────────────────────────────────────────────")
     for field in [
         "circle_present", "circle_closed", "all_12_present",
-        "missing_numbers", "numbers_outside_circle", "numbers_evenly_spaced",
-        "hand_count", "shorter_hand_points_to", "longer_hand_points_to", "hands_same_length",
+        "missing_numbers", "duplicated_numbers", "numbers_outside_circle",
+        "numbers_evenly_spaced", "hand_count",
+        "shorter_hand_points_to", "longer_hand_points_to", "hands_same_length",
     ]:
         print(f"  {field}: {str(data.get(field, '')).strip().lower()}")
 
