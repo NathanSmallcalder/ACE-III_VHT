@@ -15,22 +15,14 @@ load_dotenv()
 
 BASE_URL = "http://localhost:1234/v1"
 API_KEY  = "lm-studio"
-MODEL    = "gemini-3.1-pro-preview"
-_BACKEND = "gemini"  # "lm_studio" | "gemini" — flipped by set_gemini()
+MODEL    = "qwen/qwen3-vl-4b"
+_BACKEND = "lm_studio"  # "lm_studio" | "gemini" 
 
 VLM_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "vlm_responses")
 
-MIN_DIMENSION = 1024  # hand-drawn images are often small/low-res; upscale before sending to the VLM
+MIN_DIMENSION = 1024  #  upscale before sending to the VLM
 
 def build_client(temperature: float, max_tokens: int):
-    if _BACKEND == "gemini":
-        return ChatGoogleGenerativeAI(
-            model=MODEL,
-            google_api_key=os.environ["GOOGLE_API_KEY"],
-            temperature=temperature,
-            max_output_tokens=max_tokens,
-            seed=0,
-        )
     return ChatOpenAI(
         base_url=BASE_URL,
         api_key=API_KEY,
@@ -39,13 +31,6 @@ def build_client(temperature: float, max_tokens: int):
         max_tokens=max_tokens,
         stop=["<|im_end|>", "<|endoftext|>"],
     )
-
-def set_gemini(model_name: str) -> None:
-    """Switch the shared VLM backend to Gemini, using `model_name` from session config.
-    Must be called before any scorer module's module-level `build_client(...)` runs."""
-    global MODEL, _BACKEND
-    MODEL = model_name
-    _BACKEND = "gemini"
 
 def encode_image(image_path: str) -> str:
     """Encodes an image, upscaling it first if its smaller dimension is below

@@ -339,13 +339,15 @@ def _score_clock_visual(image_path, response):
     from visual_tasks.clock_scorer import score_clock_image
     return score_clock_image(response)["total"]
 
-
 def _score_wire_cube_visual(image_path, response):
+    if not response:
+        return None
     from visual_tasks.cube_scorer import score_cube_image
     return score_cube_image(response)["total"]
 
-
 def _score_infinity_diagram_visual(image_path, response):
+    if not response:
+        return None
     from visual_tasks.infinity_scorer import score_infinity_image
     return score_infinity_image(response)["total"]
 

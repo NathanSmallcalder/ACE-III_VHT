@@ -14,7 +14,5 @@
     "current_uk_pm": "Keir Starmer",
     "current_us_president": "Donald Trump",
     "previous_uk_pm": "",
-    "previous_us_president": "",
-    "vlm_backend": "gemini",
-    "gemini_model": "gemini-3.5-flash"
+    "previous_us_president": ""
 }

@@ -15,7 +15,6 @@ from data_loader import get_session_config, resolve_dynamic_answers, get_season_
 from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question
 from virtual_avatar.avatar import furhat_connect
 from ui.session_window import SessionWindow
-from LLM.vlm import set_gemini
 
 class ACEState(MessagesState):
     current_domain: str
@@ -32,9 +31,6 @@ class ACEState(MessagesState):
     recall_matches: dict  # recall_key -> per-answer bool list, for recognition-task skip logic
 
 _session_config = get_session_config()
-
-if _session_config.get("vlm_backend") == "gemini":
-    set_gemini(_session_config.get("gemini_model", "gemini-2.5-flash"))
 
 _furhat = furhat_connect()
 _tts = TTSEngine(_furhat)

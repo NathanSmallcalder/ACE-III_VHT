@@ -16,3 +16,4 @@ Metaphone==0.6
 word2number==1.1
 furhat-remote-api==1.0.2
 pytest==9.1.1
+scipy==1.11.3
