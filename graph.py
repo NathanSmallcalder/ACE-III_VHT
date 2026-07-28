@@ -4,6 +4,7 @@ from rapidfuzz import fuzz
 from PIL import Image
 import json
 import os
+import re
 import time
 from LLM.dialogue import *
 from marking.marking import *
@@ -227,10 +228,16 @@ def _handle_name_address_trials(state, question, response, domain, q_index, sub_
 
 def _reprompt_text_name_address(state, question, text):
     """
-    Re-speaks the name/address on trial 2 and 3 (same text each time,
-    by design — not a paraphrase). Returns None on the final/scoring turn.
+    Re-speaks just the name/address stimulus on trial 2 and 3 (same words
+    each time, by design — not a paraphrase), skipping the trial-1-only
+    preamble ("We will do this three times..."). Returns None on the
+    final/scoring turn.
     """
-    return text if state.get("reprompt_kind") == "trial" else None
+    if state.get("reprompt_kind") != "trial":
+        return None
+    quotes = re.findall(r"Speak:\s*'(.*?)'", question.get("instructions", ""))
+    stimulus = quotes[-1] if quotes else text
+    return f"Let's do that again. {stimulus}"
 
 def _recognition_recalled(question, sub_index, state):
     """True if this recognition element's tokens were already fully credited

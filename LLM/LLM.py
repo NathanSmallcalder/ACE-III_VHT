@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 
 _BASE_URL = "http://localhost:1234/v1"
 _API_KEY  = "lm-studio"
-_MODEL    = "qwen2.5-7b-instruct-uncensored"
+_MODEL    = "google/gemma-4-e4b"
 
 def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
     return ChatOpenAI(
@@ -15,5 +15,5 @@ def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
         stop=["<|im_end|>", "<|endoftext|>"],
     )
 
-llm_strict = _build(temperature=0.0, max_tokens=200)  # classify_turn — deterministic
-llm_warm   = _build(temperature=0.7, max_tokens=60)   # introduce, soften_repeat — natural
+llm_strict = _build(temperature=0.0, max_tokens=2000)  # classify_turn — deterministic
+llm_warm   = _build(temperature=0.7, max_tokens=2000)   # introduce, soften_repeat — natural
