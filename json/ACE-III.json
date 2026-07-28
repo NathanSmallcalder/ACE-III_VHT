@@ -106,25 +106,6 @@
                     "match_type": "person_name",
                     "answers": ["John F. Kennedy", "John Kennedy", "Kennedy", "JFK"],
                     "image": null
-                },
-                {
-                    "question_text": "Delayed recall: Recall the name and address from earlier.",
-                    "instructions": "Speak: 'Now, tell me what you remember about that name and address we were repeating at the beginning.' Wait for a response.",
-                    "score_cap": 7,
-                    "match_type": "mixed_list",
-                    "recall_key": "name_address",
-                    "answers": ["Harry", "Barnes", "73", "Orchard", "Close", "Kingsbridge", "Devon"],
-                    "image": null
-                },
-                {
-                    "question_text": "Recognition: Identify correct name and address elements from choices.",
-                    "instructions": "Elements already credited in the delayed recall task are skipped automatically. Speak: 'Was the name Jerry Barnes, Harry Barnes, or Harry Bradford?' Wait for a response. Speak: 'Was the number 37, 73, or 76?' Wait for a response. Speak: 'Was the street Orchard Place, Oak Close, or Orchard Close?' Wait for a response. Speak: 'Was the town Oakhampton, Kingsbridge, or Dartington?' Wait for a response. Speak: 'Was the county Devon, Dorset, or Somerset?' Wait for a response.",
-                    "score_cap": 5,
-                    "match_type": "mixed_list",
-                    "recall_key": "name_address",
-                    "element_recall_indices": [[0, 1], [2], [3, 4], [5], [6]],
-                    "answers": ["Harry Barnes", "73", "Orchard Close", "Kingsbridge", "Devon"],
-                    "image": null
                 }
             ]
         },
@@ -334,6 +315,27 @@
                     "match_type": "exact",
                     "answers": ["K"],
                     "image": "images/page5_img5.png"
+                },
+                {
+                    "question_text": "Delayed recall: Recall the name and address from earlier.",
+                    "instructions": "Speak: 'Now, tell me what you remember about that name and address we were repeating at the beginning.' Wait for a response.",
+                    "score_cap": 7,
+                    "match_type": "mixed_list",
+                    "score_domain": "Memory",
+                    "recall_key": "name_address",
+                    "answers": ["Harry", "Barnes", "73", "Orchard", "Close", "Kingsbridge", "Devon"],
+                    "image": null
+                },
+                {
+                    "question_text": "Recognition: Identify correct name and address elements from choices.",
+                    "instructions": "Elements already credited in the delayed recall task are skipped automatically. Speak: 'Was the name Jerry Barnes, Harry Barnes, or Harry Bradford?' Wait for a response. Speak: 'Was the number 37, 73, or 76?' Wait for a response. Speak: 'Was the street Orchard Place, Oak Close, or Orchard Close?' Wait for a response. Speak: 'Was the town Oakhampton, Kingsbridge, or Dartington?' Wait for a response. Speak: 'Was the county Devon, Dorset, or Somerset?' Wait for a response.",
+                    "score_cap": 5,
+                    "match_type": "mixed_list",
+                    "score_domain": "Memory",
+                    "recall_key": "name_address",
+                    "element_recall_indices": [[0, 1], [2], [3, 4], [5], [6]],
+                    "answers": ["Harry Barnes", "73", "Orchard Close", "Kingsbridge", "Devon"],
+                    "image": null
                 }
             ]
         }

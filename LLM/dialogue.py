@@ -1,6 +1,4 @@
 import re
-from typing import Literal
-from pydantic import BaseModel
 from langchain_core.messages import SystemMessage, HumanMessage
 from LLM.LLM import llm_strict, llm_warm
 
@@ -13,7 +11,7 @@ def introduce(patient_name: str) -> str:
             "assessment with a patient. Reply with ONLY a brief (1-2 sentence) friendly "
             "introduction: greet the patient by name and let them know you'll be asking "
             "some questions now. Do not explain the test mechanics, do not ask a question "
-            "yourself, do not use quotes."
+            "yourself, do not use quotes. Do not ask a question based off the users response."
         )),
         HumanMessage(content=f"Patient's name: {patient_name}")
     ])
@@ -27,7 +25,7 @@ def acknowledge(last_response: str) -> str:
             "You must not reply with any positive or negative judgment of the patient's answer."
             "Reply with ONLY a brief (3-6 word) natural acknowledgment of the "
             "patient's last answer, to say before moving on to the next question. "
-            "Do not ask a question, do not repeat their answer, do not use quotes."
+            "Do not ask a question, do not repeat their answer, do not use quotes. Do not ask a question based off the users response."
         )),
         HumanMessage(content=f"Patient said: {last_response}")
     ])
@@ -41,7 +39,7 @@ def rephrase_question(question_text: str) -> str:
             "You are a warm clinical assessor. The patient did not understand the question. "
             "Reply with ONLY a brief rephrased version of the question "
             "to help them understand. Do not add new information, do not judge their "
-            "response, do not use quotes."
+            "response, do not use quotes. Do not ask a question based off the users response."
         )),
         HumanMessage(content=f"Question: {question_text}")
     ])

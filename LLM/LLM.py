@@ -1,10 +1,9 @@
 # LLM/LLM.py
 from langchain_openai import ChatOpenAI
 
-# Single source of truth for the backend connection
 _BASE_URL = "http://localhost:1234/v1"
 _API_KEY  = "lm-studio"
-_MODEL    = "qwen/qwen3-vl-4b"
+_MODEL    = "qwen2.5-7b-instruct-uncensored"
 
 def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
     return ChatOpenAI(

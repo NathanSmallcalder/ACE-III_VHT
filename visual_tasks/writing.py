@@ -1,5 +1,3 @@
-import atexit
-
 import spacy
 from dotenv import load_dotenv
 
@@ -19,34 +17,6 @@ _GRAMMAR_PROMPT = (
     'wrong-word/homophone mistake)? Respond with exactly one word: YES or NO.'
 )
 
-
-def extract_verbs(sentence):
-    doc = nlp(sentence)
-    verbs = []
-
-    for token in doc:
-        if token.pos_ == "VERB":
-            simple_verb = token.text
-            verb_modifiers = [t for t in token.lefts if t.dep_ in ("aux", "auxpass", "neg")]
-            verb_phrase = "".join([t.text_with_ws for t in verb_modifiers]) + simple_verb
-            verbs.append(verb_phrase.strip())
-    return verbs
-
-def count_sentences(text):
-    doc = nlp(text)
-    return len(list(doc.sents))
-
-def extract_subject(sentence):
-    doc = nlp(sentence)
-    subjects = []
-
-    for token in doc:
-        if token.dep_ in ("nsubj", "nsubjpass"):
-            simple_subject = token.text
-            subject_phrase = "".join([t.text_with_ws for t in token.lefts]).strip() + " " + simple_subject
-            subjects.append(subject_phrase.strip())
-
-    return subjects
 
 def sentence_has_error_llm(sentence_text):
     response = llm_strict.invoke(_GRAMMAR_PROMPT.format(sentence=sentence_text))

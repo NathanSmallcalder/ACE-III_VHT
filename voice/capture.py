@@ -1,7 +1,7 @@
 import numpy as np
 import sounddevice as sd
 from faster_whisper import WhisperModel
-from voice.config import NO_SPEECH_TIMEOUT, WHISPER_RATE, AUDIO_CHUNK, SILENCE_THRESHOLD, SILENCE_DURATION, MAX_RESPONSE_DURATION
+from voice.config import WHISPER_RATE, AUDIO_CHUNK, SILENCE_THRESHOLD, SILENCE_DURATION, MAX_RESPONSE_DURATION
 
 class AudioCapture:
     def __init__(self, model_size="large", silence_timeout=SILENCE_DURATION, model=None):

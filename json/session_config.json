@@ -1,6 +1,6 @@
 {
     "location": {
-        "number": "Ward 4",
+        "number": "4",
         "street": "Hospital Road",
         "town": "canterbury",
         "county": "kent",
@@ -12,7 +12,7 @@
     },
     "assessor": "na",
     "current_uk_pm": "Keir Starmer",
-    "current_us_president": "Donald Trump",
-    "previous_uk_pm": "",
-    "previous_us_president": ""
+    "current_us_president": "Andy Burnham",
+    "previous_uk_pm": "Keir Starmer",
+    "previous_us_president": "Joe Biden"
 }

@@ -8,7 +8,6 @@ from datetime import datetime
 from dotenv import load_dotenv
 from PIL import Image
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 
 load_dotenv()
@@ -16,7 +15,6 @@ load_dotenv()
 BASE_URL = "http://localhost:1234/v1"
 API_KEY  = "lm-studio"
 MODEL    = "qwen/qwen3-vl-4b"
-_BACKEND = "lm_studio"  # "lm_studio" | "gemini" 
 
 VLM_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "vlm_responses")
 

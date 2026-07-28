@@ -28,6 +28,3 @@ def normalise_number(text):
         return str(w2n.word_to_num(text))
     except ValueError:
         return text
-    
-def tokenize(text):
-    return clean_response(text).split()

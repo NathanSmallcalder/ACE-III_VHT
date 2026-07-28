@@ -170,18 +170,17 @@ def score_fuzzy_list(response, answers):
     return score
 
 def score_all_correct_list(response, answers):
-    """All-or-nothing: 1 point only if every item in the list was matched,
+    """1 point only if every item in the list was matched,
     else 0. Used where the guide gives no partial credit (e.g. Reading:
     'Score 1 point if all five words are read correctly')."""
     return 1 if score_fuzzy_list(response, answers) == len(answers) else 0
 
 def score_sentence_repetition(response, answers):
     """Whole-phrase fuzzy match. Unlike score_fuzzy's n-gram sliding window
-    (built for short answers), a repeated sentence must be judged as one
+    (for short answers), a repeated sentence must be judged as one
     unit against the full expected phrase."""
     expected = clean_response(answers[0])
     return 1 if rapidfuzz.fuzz.ratio(clean_response(response), expected) >= FUZZY_THRESHOLD else 0
-
 
 _ANIMAL_ROOTS = None
 

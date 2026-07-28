@@ -85,10 +85,6 @@ class SessionWindow:
         self._stage_image_ref = tk_img
         self.pump()
 
-    def clear_stage(self) -> None:
-        self.get_stage_frame()
-        self.pump()
-
     def pump(self) -> None:
         """Service the Tk event queue without blocking. Main-thread only —
         never call from a background thread (Tkinter is not thread-safe)."""

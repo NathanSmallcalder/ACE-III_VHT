@@ -7,11 +7,9 @@ load_dotenv()
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
 CLOCK_PROMPT = """You are analysing a hand-drawn clock image for clinical scoring purposes.
-
 Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing. Where a field does not apply
 (e.g. hand fields when no hands are drawn), use "none".
-Respond with a single JSON object and nothing else — no preamble, no explanation, no markdown fences.
-
+Respond with a single JSON object and nothing else — no explanation.
 {
   "circle_present": "<yes/no>",
   "circle_closed": "<yes/no/unclear>",
@@ -132,18 +130,10 @@ def score_clock(data: dict) -> dict:
     }
 
 
-N_SAMPLES = 3
-
-
 def score_clock_image(image_path: str) -> dict:
-    """Describe a hand-drawn clock image via VLM N_SAMPLES times and score it against
-    the ACE-III clock criteria, taking the majority-vote total across samples."""
-    from collections import Counter
-
-    samples = [(data := _describe_clock(image_path), score_clock(data)) for _ in range(N_SAMPLES)]
-    totals = [result["total"] for _, result in samples]
-    majority_total = Counter(totals).most_common(1)[0][0]
-    data, result = next(s for s in samples if s[1]["total"] == majority_total)
+    """Describe a hand-drawn clock image via VLM and score it against the ACE-III clock criteria."""
+    data = _describe_clock(image_path)
+    result = score_clock(data)
 
     save_vlm_response("clock", image_path, data, result)
     return result
