@@ -1,4 +1,8 @@
 import os
+import tempfile
+
+import cv2
+from PIL import Image
 from dotenv import load_dotenv
 
 from LLM.vlm import build_client, describe_images, save_vlm_response
@@ -9,6 +13,11 @@ load_dotenv()
 CLOCK_PROMPT = """You are analysing a hand-drawn clock image for clinical scoring purposes.
 Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing. Where a field does not apply
 (e.g. hand fields when no hands are drawn), use "none".
+
+Before giving the JSON, reason step by step about the two hands specifically:
+1. Locate the centre of the clock face.
+2. For each hand, trace it from the centre to its tip and note roughly how far the tip is from the centre AS A FRACTION of the distance from the centre to the drawn circle's edge along that same direction (e.g. "about half way to the edge", "reaches about 70% of the way to the edge"). Do not judge length by comparing raw pixel/line length between the two hands, and do not judge it by which digit the hand happens to be near — a hand pointing toward a digit that sits closer to the (often uneven) circle edge in that direction can look longer even if it is proportionally the shorter hand. Compare the two fractions you computed to decide which hand is actually shorter and which is longer.
+
 Respond with a single JSON object and nothing else — no explanation.
 {
   "circle_present": "<yes/no>",
@@ -31,14 +40,58 @@ Respond with a single JSON object and nothing else — no explanation.
 }
 
 Rules for hands: a hand's direction is the number its TIP points toward from the centre. If a hand has an arrowhead, follow the arrow. Do not report the number nearest the hand's shaft.
-""" 
+"""
 
 llm = build_client(0.0, 20000)
 
 
+def _crop_to_clock_face(image_path: str, pad_frac: float = 0.12) -> str:
+    """Crop tightly around the detected clock-face circle so the hands take up
+    more of the frame the VLM sees. Falls back to the original image if no
+    circle is found. Returns a path to a temp PNG — caller must clean it up
+    if it differs from image_path."""
+    img_cv = cv2.imread(image_path)
+    if img_cv is None:
+        return image_path
+
+    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+    blur = cv2.medianBlur(gray, 5)
+    h, w = gray.shape
+    circles = cv2.HoughCircles(
+        blur, cv2.HOUGH_GRADIENT, dp=1, minDist=1000,
+        param1=80, param2=40, minRadius=int(min(h, w) * 0.15), maxRadius=int(min(h, w) * 0.6),
+    )
+    if circles is None:
+        return image_path
+
+    cx, cy, r = circles[0, 0]
+    pad = r * (1 + pad_frac)
+    left, top = max(0, cx - pad), max(0, cy - pad)
+    right, bottom = min(w, cx + pad), min(h, cy + pad)
+
+    # Never crop tighter than the actual drawing: widen the box to also cover
+    # every ink pixel, in case the detected circle undershoots the true one.
+    _, ink = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+    ys, xs = ink.nonzero()
+    if len(xs):
+        left, top = min(left, xs.min()), min(top, ys.min())
+        right, bottom = max(right, xs.max()), max(bottom, ys.max())
+
+    cropped = Image.open(image_path).convert("RGB").crop((int(left), int(top), int(right), int(bottom)))
+    fd, temp_path = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    cropped.save(temp_path)
+    return temp_path
+
+
 def _describe_clock(image_path: str) -> dict:
     """Send the clock drawing to the VLM and parse its structured description."""
-    return describe_images(llm, CLOCK_PROMPT, [image_path])
+    cropped_path = _crop_to_clock_face(image_path)
+    try:
+        return describe_images(llm, CLOCK_PROMPT, [cropped_path])
+    finally:
+        if cropped_path != image_path:
+            os.remove(cropped_path)
 
 def score_clock(data: dict) -> dict:
     """Score against the ACE-III / M-ACE clock criteria (0-5).

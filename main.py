@@ -17,6 +17,8 @@ initial_state = {
     "reprompt_kind": None,  # None | "season" | "name" | "leader" | "trial" — which handler's reprompt is active
     "turn_progress": 0,     # per-question counter, meaning depends on the active handler
     "recall_matches": {},   # recall_key -> per-answer bool list, for recognition-task skip logic
+    "question_log": [],
+    "question_turn_start": 0,
 }
 
 if __name__ == "__main__":

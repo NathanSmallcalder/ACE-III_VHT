@@ -11,6 +11,10 @@ The target is a 3D wire-frame cube, drawn in any of the usual conventions (e.g. 
 corner-to-corner, or an isometric box with a front/top/side face) — a complete wire-frame cube has 12 edges
 (straight line segments) in total. Proportions do not need to be accurate.
 
+Be lenient when counting edges: count an edge as present if there is a line that plausibly represents it, even
+if the line is wavy, doesn't meet cleanly at the corner, overshoots past the vertex, or is faint — imperfect
+execution still counts. Only mark an edge as absent if there is no line at all along that connection.
+
 Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing.
 Respond with a single JSON object and nothing else — no preamble, no explanation, no markdown fences.
 

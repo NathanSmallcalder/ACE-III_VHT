@@ -31,19 +31,15 @@ GRID_ITEMS = [
     "crown", "crocodile", "accordion",
 ]
 
-
 def _is_draw_task(question: dict) -> bool:
     text = question.get("question_text", "")
     return any(text.startswith(prefix + ":") for prefix in DRAW_TASKS)
 
-
 def _is_video_task(question: dict) -> bool:
     return question.get("question_text", "").startswith(VIDEO_TASK_PREFIX)
 
-
 def is_click_point_question(question: dict) -> bool:
     return question.get("question_text", "").startswith(CLICK_POINT_PREFIX)
-
 
 def _launch_camera_capture(gui, output_path: str, audio, question_text: str,
                             duration: int = DRAW_DURATION, reference_image_path: str | None = None):

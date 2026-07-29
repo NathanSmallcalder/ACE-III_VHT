@@ -75,13 +75,11 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
 
 _transcribe_llm = build_client(0.0, 4000)
 
-
 def transcribe_writing(image_path: str) -> str:
     """Send the photographed writing sample to the VLM and return its plain-text
     transcription. Returns "" on any connection failure or malformed response."""
     data = describe_images(_transcribe_llm, _TRANSCRIBE_PROMPT, [image_path])
     return data.get("transcription", "")
-
 
 def score_writing_image(image_path: str) -> dict:
     """Transcribe the photographed writing sample via VLM, then score it against

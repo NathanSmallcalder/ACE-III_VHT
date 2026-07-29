@@ -5,21 +5,23 @@ from LLM.vlm import build_client, describe_images, save_vlm_response
 load_dotenv()
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
+# Scoring criterion (ACE-III): "A score of 1 is given if two infinity loops
+# are drawn and overlap. Both infinity loops must come to a point/cross and
+# do not look like circles."
 INFINITY_PROMPT = """You are analysing a hand-drawn attempt at copying an interlocking infinity-loop diagram, for clinical scoring purposes.
 
-The target diagram (not shown) is two separate figure-eight (infinity symbol) loops, placed side by side so
-they overlap in the middle: this creates 4 visible rounded loop bumps in total (leftmost loop, two
-overlapping loops in the centre, and the rightmost loop), with the two central loops crossing over/under
-each other rather than merely touching.
+The target diagram (not shown) is two separate figure-eight (infinity symbol, "∞") shapes, placed side by side
+so they overlap in the middle. Each figure-eight shape on its own has two loops that meet at a central waist
+where the line crosses itself to a sharp point — it must look like an infinity symbol, not like two circles
+or ovals merely touching or fused together.
 
 Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing.
 Respond with a single JSON object and nothing else — no preamble, no explanation, no markdown fences.
 
 {
-  "loop_count": "<integer, or unclear — total number of distinct rounded loop bumps in the drawing>",
-  "each_loop_closed": "<yes/no — is every loop in the drawing a fully closed curve, with no open gaps>",
-  "central_loops_cross": "<yes/no/unclear — do the two central loops visibly cross over/under each other, rather than just touching or merging>",
-  "drawn_as_continuous_curve": "<yes/no — is the drawing done as one continuous line, without obvious large breaks>",
+  "figure_eight_count": "<integer, or unclear — how many distinct figure-eight/infinity shapes are drawn (each made of two loops crossing at its own central waist)>",
+  "each_figure_eight_has_sharp_crossing": "<yes/no/unclear — does every individual figure-eight shape come to a clear point/cross at its own waist? Answer no if a figure-eight's two loops are instead just touching, fused, or overlapping without a defined pinch point — i.e. it reads as two circles/ovals rather than an infinity symbol.>",
+  "figure_eights_overlap": "<yes/no/unclear — do the two figure-eight shapes visibly overlap each other in the middle>",
 
   "notes": "<one short sentence flagging anything unusual not captured above, or none>"
 }
@@ -44,10 +46,9 @@ def score_infinity(data: dict) -> dict:
             return None
 
     checks = [
-        to_int(get("loop_count")) == 4,
-        get("each_loop_closed") == "yes",
-        get("central_loops_cross") == "yes",
-        get("drawn_as_continuous_curve") == "yes",
+        to_int(get("figure_eight_count")) == 2,
+        get("each_figure_eight_has_sharp_crossing") == "yes",
+        get("figure_eights_overlap") == "yes",
     ]
 
     total = 1 if all(checks) else 0
@@ -72,8 +73,8 @@ if __name__ == "__main__":
 
     print("\n── Parsed Fields ────────────────────────────────────────────")
     for field in [
-        "loop_count", "each_loop_closed",
-        "central_loops_cross", "drawn_as_continuous_curve", "notes",
+        "figure_eight_count", "each_figure_eight_has_sharp_crossing",
+        "figure_eights_overlap", "notes",
     ]:
         print(f"  {field}: {str(data.get(field, '')).strip().lower()}")
 

@@ -14,7 +14,7 @@ load_dotenv()
 
 BASE_URL = "http://localhost:1234/v1"
 API_KEY  = "lm-studio"
-MODEL    = "qwen/qwen3-vl-4b"
+MODEL    = "qwen2.5-vl-7b-instruct"
 
 VLM_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "vlm_responses")
 
@@ -59,7 +59,7 @@ def describe_images(client: ChatOpenAI, prompt: str, image_paths: list[str]) -> 
 
     raw = response.content
     if isinstance(raw, list):
-        raw = raw[0]["text"]
+        raw = next(block["text"] for block in raw if block.get("type") == "text")
 
     # Strip markdown fences if the model ignores instructions
     raw = re.sub(r"^```json\s*|^```\s*|```$", "", raw.strip(), flags=re.MULTILINE).strip()

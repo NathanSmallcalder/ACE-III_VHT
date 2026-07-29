@@ -30,6 +30,8 @@ class ACEState(MessagesState):
     reprompt_kind: str   # None | "season" | "name" | "leader" | "trial"
     turn_progress: int   # generic per-question counter; meaning depends on the active handler
     recall_matches: dict  # recall_key -> per-answer bool list, for recognition-task skip logic
+    question_log: list   # one record per finished question, for the end-of-test review JSON
+    question_turn_start: int  # index into messages where the in-progress question's turns began
 
 _session_config = get_session_config()
 
@@ -113,7 +115,7 @@ def _handle_person_name(state, question, response, domain, q_index, sub_index):
     score = score_question(response, question)
     if score:
         return _finalize_score(state, question, domain, q_index, score, 0)
-    
+
     # ask for the surname before giving up on the question.
     if len(clean_response(response).split()) == 1:
         return _reprompt("name")
@@ -453,17 +455,41 @@ def scoring_node(state: ACEState) -> dict:
         result["recall_matches"] = {**state.get("recall_matches", {}), recall_key: matches}
     return result
 
+def _question_record(state: ACEState) -> dict:
+    """One review-log entry for the question just finished: every patient
+    response captured since question_turn_start, plus its final score."""
+    domain = state["current_domain"]
+    q_index = state["question_index"]
+    question = ACE_DATA[domain]["questions"][q_index]
+    start = state.get("question_turn_start", 0)
+    responses = [m.content for m in state["messages"][start:] if isinstance(m, HumanMessage)]
+    return {
+        "domain": domain,
+        "question_index": q_index,
+        "question_text": question.get("question_text"),
+        "match_type": question.get("match_type", "fuzzy_list"),
+        "response": responses,
+        "score": state.get("question_score", 0),
+        "score_cap": question["score_cap"],
+    }
+
 def advance_node(state: ACEState) -> dict:
     """
-    Moves to the next question in the domain, resetting question_score; if
-    the domain's questions are exhausted, pops the next domain off domain_queue.
+    Logs the finished question, then moves to the next question in the
+    domain (resetting question_score); if the domain's questions are
+    exhausted, pops the next domain off domain_queue.
     """
     domain = state["current_domain"]
     q_index = state["question_index"]
     total_questions = len(ACE_DATA[domain]["questions"])
+    question_log = state.get("question_log", []) + [_question_record(state)]
+    question_turn_start = len(state["messages"])
 
     if q_index + 1 < total_questions:
-        return {"question_index": q_index + 1, "sub_question_index": 0, "question_score": 0}
+        return {
+            "question_index": q_index + 1, "sub_question_index": 0, "question_score": 0,
+            "question_log": question_log, "question_turn_start": question_turn_start,
+        }
     else:
         q = state["domain_queue"].copy()
         next_domain = q.pop(0)
@@ -472,7 +498,9 @@ def advance_node(state: ACEState) -> dict:
             "question_index": 0,
             "sub_question_index": 0,
             "question_score": 0,
-            "domain_queue": q
+            "domain_queue": q,
+            "question_log": question_log,
+            "question_turn_start": question_turn_start,
         }
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
@@ -495,6 +523,9 @@ def report_node(state: ACEState) -> dict:
     scores = state["scores"]
     total = sum(scores.values())
     interpretation = _interpret_ace_total(total)
+    # advance_node handles every question but the very last one (router sends
+    # scoring straight to report for it), so record it here before dumping.
+    question_log = state.get("question_log", []) + [_question_record(state)]
 
     print("\n--- ACE-III Complete ---")
     for domain, score in scores.items():
@@ -515,6 +546,7 @@ def report_node(state: ACEState) -> dict:
             "domain_caps": {d: ACE_DATA[d]["score_cap"] for d in ACE_DATA},
             "total_score": total,
             "interpretation": interpretation,
+            "questions": question_log,
         }, f, indent=2)
     print(f"\nSaved results to {out_path}")
 
