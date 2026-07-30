@@ -13,7 +13,7 @@ from voice.capture import AudioCapture
 from voice.config import FLUENCY_SILENCE_DURATION
 from datetime import datetime
 from data_loader import get_session_config, resolve_dynamic_answers, get_season_transition
-from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question
+from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question, task_modality
 from virtual_avatar.avatar import furhat_connect
 from ui.session_window import SessionWindow
 
@@ -32,6 +32,7 @@ class ACEState(MessagesState):
     recall_matches: dict  # recall_key -> per-answer bool list, for recognition-task skip logic
     question_log: list   # one record per finished question, for the end-of-test review JSON
     question_turn_start: int  # index into messages where the in-progress question's turns began
+    previous_task_signature: tuple  # (domain, modality) of the most recently finished question, or None
 
 _session_config = get_session_config()
 
@@ -351,17 +352,9 @@ def conversation_node(state: ACEState) -> dict:
     elif state.get("needs_repeat"):
         spoken_text = rephrase_question(text)
     else:
-        if not state["messages"]:
-            wrapper = introduce(_session_config["patient"]["name"])
-        elif sub_index == 0:
-            last_patient = next(
-                (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-                None
-            )
-            wrapper = acknowledge(last_patient) if last_patient else ""
-        else:
-            wrapper = ""
-
+        wrapper = resolve_wrapper(
+            state, _session_config["patient"]["name"], domain, task_modality(question), sub_index,
+        )
         spoken_text = f"{wrapper} {text}".strip() if wrapper else text
 
     print("Assessor:", spoken_text)
@@ -481,19 +474,22 @@ def advance_node(state: ACEState) -> dict:
     """
     domain = state["current_domain"]
     q_index = state["question_index"]
+    question = ACE_DATA[domain]["questions"][q_index]
     total_questions = len(ACE_DATA[domain]["questions"])
     question_log = state.get("question_log", []) + [_question_record(state)]
     question_turn_start = len(state["messages"])
+    previous_task_signature = (domain, task_modality(question))
 
     if q_index + 1 < total_questions:
-        return {
+        result = {
             "question_index": q_index + 1, "sub_question_index": 0, "question_score": 0,
             "question_log": question_log, "question_turn_start": question_turn_start,
+            "previous_task_signature": previous_task_signature,
         }
     else:
         q = state["domain_queue"].copy()
         next_domain = q.pop(0)
-        return {
+        result = {
             "current_domain": next_domain,
             "question_index": 0,
             "sub_question_index": 0,
@@ -501,7 +497,13 @@ def advance_node(state: ACEState) -> dict:
             "domain_queue": q,
             "question_log": question_log,
             "question_turn_start": question_turn_start,
+            "previous_task_signature": previous_task_signature,
         }
+
+    # Checkpoint reflects where the assessment will resume from (the question
+    # about to be asked next), not the one that just finished.
+    save_progress({**state, **result})
+    return result
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
@@ -550,6 +552,12 @@ def report_node(state: ACEState) -> dict:
         }, f, indent=2)
     print(f"\nSaved results to {out_path}")
 
+    # A finished assessment has no in-progress state left to resume from —
+    # remove the checkpoint so it can't be mistaken for an unfinished session.
+    progress_path = os.path.join(PROGRESS_DIR, f"progress_{safe_name}.json")
+    if os.path.exists(progress_path):
+        os.remove(progress_path)
+
     _gui.add_message("assessor", "Thank you — that concludes the assessment.")
     time.sleep(3)
     _gui.close()
@@ -577,6 +585,42 @@ def router(state: ACEState) -> str:
         return "next_domain"
     else:
         return "report"
+
+PROGRESS_DIR = os.path.join(RESULTS_DIR, "progress")
+
+
+def save_progress(state: ACEState) -> str:
+    """Writes the full in-progress state to disk so an interrupted session
+    can be resumed later. Overwrites the same file each call — this is a
+    checkpoint of the latest position, not a history of every save."""
+    os.makedirs(PROGRESS_DIR, exist_ok=True)
+    patient_name = _session_config.get("patient", {}).get("name", "unknown")
+    safe_name = "".join(c if c.isalnum() else "_" for c in str(patient_name))
+    out_path = os.path.join(PROGRESS_DIR, f"progress_{safe_name}.json")
+
+    with open(out_path, "w") as f:
+        json.dump({
+            "current_domain": state["current_domain"],
+            "question_index": state["question_index"],
+            "sub_question_index": state.get("sub_question_index", 0),
+            "question_score": state.get("question_score", 0),
+            "scores": state["scores"],
+            "domain_queue": state["domain_queue"],
+            "complete": state.get("complete", False),
+            "needs_repeat": state.get("needs_repeat", False),
+            "repeat_count": state.get("repeat_count", 0),
+            "reprompt_kind": state.get("reprompt_kind"),
+            "turn_progress": state.get("turn_progress", 0),
+            "recall_matches": state.get("recall_matches", {}),
+            "question_log": state.get("question_log", []),
+            "question_turn_start": state.get("question_turn_start", 0),
+            "previous_task_signature": state.get("previous_task_signature"),
+            "messages": [{"role": m.type, "content": m.content} for m in state["messages"]],
+        }, f, indent=2)
+
+    return out_path
+
+
 
 builder = StateGraph(ACEState)
 builder.add_node("conversation", conversation_node)

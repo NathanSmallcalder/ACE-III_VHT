@@ -1,11 +1,10 @@
 from graph import graph, ACE_DATA
 
-
 DOMAIN_ORDER = list(ACE_DATA.keys())
 
 initial_state = {
     "messages": [],
-    "current_domain": DOMAIN_ORDER[0],
+    "current_domain": "Visuospatial",   # DOMAIN_ORDER[0],
     "question_index": 0,
     "sub_question_index": 0,
     "question_score": 0,
@@ -19,6 +18,7 @@ initial_state = {
     "recall_matches": {},   # recall_key -> per-answer bool list, for recognition-task skip logic
     "question_log": [],
     "question_turn_start": 0,
+    "previous_task_signature": None,
 }
 
 if __name__ == "__main__":

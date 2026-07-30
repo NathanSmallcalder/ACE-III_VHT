@@ -14,7 +14,7 @@ load_dotenv()
 
 BASE_URL = "http://localhost:1234/v1"
 API_KEY  = "lm-studio"
-MODEL    = "qwen2.5-vl-7b-instruct"
+MODEL    = "qwen/qwen3-vl-4b"
 
 VLM_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "vlm_responses")
 

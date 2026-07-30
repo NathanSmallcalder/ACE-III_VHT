@@ -5,7 +5,13 @@ _BASE_URL = "http://localhost:1234/v1"
 _API_KEY  = "lm-studio"
 _MODEL    = "google/gemma-4-e4b"
 
+"""
+Bulds the LLM
+"""
 def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
+    """
+    Bulds the LLM - Currently Gemma-4-e4b
+    """
     return ChatOpenAI(
         base_url=_BASE_URL,
         api_key=_API_KEY,

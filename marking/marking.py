@@ -26,11 +26,17 @@ CATEGORY_FLUENCY_BANDS = [
     (22, float("inf"), 7)
 ]
 
-FUZZY_THRESHOLD = 90
+FUZZY_THRESHOLD = 85
+# Wide enough to cover a fully spoken-out number ("two thousand and twenty
+# six" = 5 words) without exploding the window scan's cost — response turns
+# here are short (single answers), so a few extra window sizes is negligible.
+MAX_FUZZY_WINDOW = 6
 
 _ANIMALS = None
 
-""" """
+"""
+Index a word by how it sounds
+"""
 def phonetic_equal(a, b):
     pa, sa = doublemetaphone(a)
     pb, sb = doublemetaphone(b)
@@ -90,7 +96,7 @@ def score_fuzzy(response, answers):
     response_words = clean_response(response).split()
     for answer in answers:
         expected = normalise_number(clean_response(answer))
-        for n in range(1, min(3, len(response_words)) + 1):
+        for n in range(1, min(MAX_FUZZY_WINDOW, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
                 window = normalise_number(" ".join(response_words[i:i + n]))
                 if rapidfuzz.fuzz.ratio(window, expected) >= FUZZY_THRESHOLD or phonetic_equal(window, expected):
@@ -157,7 +163,7 @@ def score_fuzzy_list(response, answers):
     for y in expected:
         if y in matched:
             continue
-        for n in range(1, min(3, len(response_words)) + 1):
+        for n in range(1, min(MAX_FUZZY_WINDOW, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
                 window = normalise_number(" ".join(response_words[i:i + n]))
                 if rapidfuzz.fuzz.ratio(window, y) >= FUZZY_THRESHOLD or phonetic_equal(window, y):

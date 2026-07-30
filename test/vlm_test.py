@@ -16,7 +16,6 @@ CUBE_DIR = os.path.join(os.path.dirname(__file__), "cube")
 
 CLAUDE_MODEL = "claude-opus-5"
 
-"""
 @pytest.fixture(autouse=True, scope="module")
 def use_claude_vlm():
     client = ChatAnthropic(
@@ -35,7 +34,7 @@ def use_claude_vlm():
     yield
     for module, original_llm in originals.items():
         module.llm = original_llm
-"""
+
 def _collect_cases(DIR):
     """Each subfolder of DIR is named after the expected total score
     (e.g. Clocks/3/ contains clock images that should score 3)."""

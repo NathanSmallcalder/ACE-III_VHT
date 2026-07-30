@@ -7,11 +7,16 @@ from rapidfuzz import fuzz
 from langchain_core.messages import AIMessage, HumanMessage
 
 from camera.capture import capture_drawing, record_video
-from LLM.dialogue import introduce, acknowledge, rephrase_question, classify_turn
+from LLM.dialogue import resolve_wrapper, rephrase_question, is_finished_drawing
 from marking.marking import parse_spoken_prompts
 
 DRAW_TASKS = {"Clock", "Infinity Diagram", "Wire Cube", "Writing"}
 DRAW_DURATION = 120
+DRAW_READY_PROMPT = "Take your time, and show me when you're ready."
+DRAW_CHECKIN_INTERVAL = 40   # seconds elapsed with no response before a check-in
+DRAW_CHECKIN_MARGIN = 15     # don't check in this close to the time limit
+DRAW_CHECKIN_PROMPTS = ["Are you ready to show me?", "Tell me when you're done."]
+DRAW_SHOW_ME_PROMPT = "Okay, now show me."
 
 # Follow-three-stage-commands: recorded (not spoken-response) so the VLM scorer
 # can judge the pencil/paper actions directly, rather than relying on the
@@ -41,7 +46,18 @@ def _is_video_task(question: dict) -> bool:
 def is_click_point_question(question: dict) -> bool:
     return question.get("question_text", "").startswith(CLICK_POINT_PREFIX)
 
-def _launch_camera_capture(gui, output_path: str, audio, question_text: str,
+def task_modality(question: dict) -> str:
+    """Coarse task-type tag, independent of clinical domain, used to detect when
+    the assessment moves to a different kind of interaction."""
+    if _is_draw_task(question):
+        return "draw"
+    if _is_video_task(question):
+        return "video"
+    if is_click_point_question(question):
+        return "click"
+    return "spoken"
+
+def _launch_camera_capture(gui, output_path: str, audio, question_text: str, tts,
                             duration: int = DRAW_DURATION, reference_image_path: str | None = None):
     """Give the patient `duration` seconds to draw on a real sheet of paper in
     front of the webcam, then photograph and rectify it via camera/capture.py.
@@ -85,6 +101,19 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str,
     voice_finished = {"v": False}
     stop_listening = threading.Event()
     timer_ids = {"tick": None, "poll": None}
+    checkin_state = {"in_progress": False, "count": 0}
+
+    def _speak_checkin():
+        checkin_state["in_progress"] = True
+        text = DRAW_CHECKIN_PROMPTS[checkin_state["count"] % len(DRAW_CHECKIN_PROMPTS)]
+        checkin_state["count"] += 1
+
+        def _do_speak():
+            if not done["v"]:
+                tts.speak(text)
+            checkin_state["in_progress"] = False
+
+        threading.Thread(target=_do_speak, daemon=True).start()
 
     def finish(label_text):
         if done["v"]:
@@ -102,6 +131,7 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str,
         root.update()
 
         def do_capture():
+            tts.speak(DRAW_SHOW_ME_PROMPT)
             capture_drawing(output_path, preview=False)
             root.after(0, root.quit)  # back onto the main thread, doesn't tear down the shared window
 
@@ -116,6 +146,12 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str,
         s = remaining["s"]
         mins, secs = divmod(s, 60)
         timer_label.config(text=f"{mins}:{secs:02d}", fg="red" if s <= 10 else "black")
+
+        elapsed = duration - s
+        if (elapsed > 0 and elapsed % DRAW_CHECKIN_INTERVAL == 0
+                and s > DRAW_CHECKIN_MARGIN and not checkin_state["in_progress"]):
+            _speak_checkin()
+
         if s > 0:
             remaining["s"] -= 1
             timer_ids["tick"] = root.after(1000, tick)
@@ -131,14 +167,11 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str,
         timer_ids["poll"] = root.after(200, poll_voice)
 
     def listen_for_finish():
-        # Reuse the same LLM turn-classifier the rest of the assessment uses
-        # ("answer" == the patient is done responding to the current prompt)
-        # instead of hand-rolled keyword matching.
         while not stop_listening.is_set():
             text = audio.capture_response()
             if stop_listening.is_set():
                 break
-            if text and classify_turn(text, question_text) == "answer":
+            if text and is_finished_drawing(text):
                 voice_finished["v"] = True
                 break
 
@@ -182,7 +215,6 @@ def _launch_video_capture(gui, output_path: str, prompts: list[str], tts):
     wait(VIDEO_SETTLE_SECONDS)
     stop_event.set()
     recorder.join(timeout=5)
-
 
 # Tracks the one click-grid stage content that may be reused across
 # consecutive pointing questions sharing the same image, so it doesn't
@@ -290,15 +322,10 @@ def run_click_task(state, question: dict, tts, session_config: dict, next_questi
     if state.get("needs_repeat"):
         spoken_text = rephrase_question(text)
     else:
-        if not state["messages"]:
-            wrapper = introduce(session_config["patient"]["name"])
-        else:
-            last_patient = next(
-                (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-                None
-            )
-            wrapper = acknowledge(last_patient) if last_patient else ""
-
+        wrapper = resolve_wrapper(
+            state, session_config["patient"]["name"], state["current_domain"],
+            task_modality(question), state.get("sub_question_index", 0),
+        )
         spoken_text = f"{wrapper} {text}".strip() if wrapper else text
     print("Assessor:", spoken_text)
     gui.add_message("assessor", spoken_text)
@@ -333,15 +360,10 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
     if state.get("needs_repeat"):
         spoken_text = rephrase_question(text)
     else:
-        if not state["messages"]:
-            wrapper = introduce(session_config["patient"]["name"])
-        else:
-            last_patient = next(
-                (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
-                None
-            )
-            wrapper = acknowledge(last_patient) if last_patient else ""
-
+        wrapper = resolve_wrapper(
+            state, session_config["patient"]["name"], state["current_domain"],
+            task_modality(question), state.get("sub_question_index", 0),
+        )
         spoken_text = f"{wrapper} {text}".strip() if wrapper else text
     print("Assessor:", spoken_text)
     gui.add_message("assessor", spoken_text)
@@ -351,9 +373,11 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
             tts.speak(wrapper)
         for prompt in spoken:
             tts.speak(prompt)
+        time.sleep(0.45)
+        tts.speak(DRAW_READY_PROMPT)
         task_name = question["question_text"].split(":")[0].lower().replace(" ", "_")
         output_path = os.path.join(os.path.dirname(__file__), f"{task_name}.png")
-        _launch_camera_capture(gui, output_path, audio, question["question_text"],
+        _launch_camera_capture(gui, output_path, audio, question["question_text"], tts,
                                reference_image_path=question.get("image"))
         return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=output_path)]}
 

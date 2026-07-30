@@ -28,11 +28,9 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
 
 llm = build_client(0.0, 20000)
 
-
 def _describe_cube(drawn_path: str) -> dict:
     """Send the patient's cube drawing to the VLM and parse its structured description."""
     return describe_images(llm, CUBE_PROMPT, [drawn_path])
-
 
 def score_cube(data: dict) -> dict:
     def get(field):

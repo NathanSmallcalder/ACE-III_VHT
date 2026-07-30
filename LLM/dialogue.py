@@ -11,7 +11,7 @@ def introduce(patient_name: str) -> str:
             "assessment with a patient. Reply with a friendly introduction"
             "greet the patient by name and let them know you'll be asking "
             "some questions now. Do not explain the test mechanics, do not ask a question "
-            "yourself, do not use quotes."
+            "yourself, do not use quotes. inform the patient that they will need a pen and a few peices of paper in front of them"
         )),
         HumanMessage(content=f"Patient's name: {patient_name}")
     ])
@@ -36,6 +36,51 @@ def acknowledge(last_response: str) -> str:
     ])
     return result.content.strip().strip('"')
 
+"""Cue spoken when moving to a different kind of task (domain or response
+modality changed). Never names the clinical domain/task, to avoid priming
+the patient."""
+def transition() -> str:
+    result = llm_warm.invoke([
+        SystemMessage(content=(
+            "You are a warm clinical assessor moving from one part of a cognitive "
+            "test to a different kind of task. Reply with a short, natural spoken "
+            "cue (roughly 5-12 words) telling the patient you're moving on to "
+            "something a little different, WITHOUT saying what it is, WITHOUT "
+            "naming any clinical domain or task (never say memory, attention, "
+            "language, drawing, clock, etc.), and without asking a question. "
+            "Your reply is always a statement, never ends with '?'. Do not use quotes.\n\n"
+            "Examples:\n"
+            "-> Okay, now we'll try something a little different.\n"
+            "-> Let's move on to something else now.\n"
+            "-> Alright, let's try a different kind of task.\n"
+        ))
+    ])
+    return result.content.strip().strip('"')
+
+
+def resolve_wrapper(state, patient_name: str, domain: str, modality: str, sub_index: int) -> str:
+    """Single source of truth for the spoken wrapper prepended to a fresh
+    question: the one-time session intro, a transition cue when the domain or
+    task modality just changed, a plain acknowledgment of the previous answer,
+    or nothing (mid-question follow-up turns). Callers still handle
+    needs_repeat/handler-reprompt turns themselves before falling back here."""
+    if not state["messages"]:
+        return introduce(patient_name)
+
+    if sub_index != 0:
+        return ""
+
+    previous_signature = state.get("previous_task_signature")
+    if previous_signature is not None and previous_signature != (domain, modality):
+        return transition()
+
+    last_patient = next(
+        (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
+        None
+    )
+    return acknowledge(last_patient) if last_patient else ""
+
+
 """ Question Rephrasing """
 def rephrase_question(question_text: str) -> str:
     """Rephrased version of the question spoken when the patient didn't understand."""
@@ -49,6 +94,36 @@ def rephrase_question(question_text: str) -> str:
         HumanMessage(content=f"Question: {question_text}")
     ])
     return result.content.strip().strip('"')
+
+def is_finished_drawing(response: str) -> bool:
+    """True if the patient's utterance means they're finished and ready to
+    show their drawing, as opposed to anything else (still working,
+    describing progress, a question, an unrelated remark, not ready yet).
+    Used during the drawing-task capture wait, where the patient hasn't been
+    asked a specific question — classify_turn's answer/repeat/off_topic/
+    incomplete labels don't map cleanly onto that (e.g. 'not yet' is a
+    genuine 'answer' to an implicit readiness check, but must not end the
+    task early)."""
+    out = llm_strict.invoke([
+        SystemMessage(content=(
+            "The patient is doing a drawing task and has not been asked a specific "
+            "question. Decide whether their utterance means they are FINISHED and "
+            "ready to show their drawing (e.g. 'I'm done', 'okay, finished', 'you can "
+            "look now', 'ready') versus anything else (still working, describing what "
+            "they're drawing, a question, an unrelated remark, explicitly not ready yet). "
+            "Reply with EXACTLY one word: yes or no.\n\n"
+            "Examples:\n"
+            "Patient: I'm done.\n-> yes\n"
+            "Patient: Okay, I've finished.\n-> yes\n"
+            "Patient: You can look now.\n-> yes\n"
+            "Patient: Not yet, one more minute.\n-> no\n"
+            "Patient: I'm drawing the numbers now.\n-> no\n"
+            "Patient: How many numbers do I need again?\n-> no\n"
+        )),
+        HumanMessage(content=f"Patient said: {response}")
+    ])
+    return out.content.strip().lower().startswith("yes")
+
 
 # Patient has given an Answer
 # Patient Needs a Repeat
