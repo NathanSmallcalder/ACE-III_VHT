@@ -209,8 +209,8 @@ def get_animals():
     return animals
 
 def _drop_subsumed_categories(unique_valid):
-    """If a more specific animal word is also present, drop the higher-order
-    category word it's subsumed under (e.g. 'fish' dropped when 'salmon' and
+    """If a more specific animal word is also present, drop the class its assumed in
+    (e.g. 'fish' dropped when 'salmon' and
     'trout' are also said) — only the specific exemplars should count."""
     synset_of = {}
     for w in unique_valid:
@@ -228,6 +228,7 @@ def _drop_subsumed_categories(unique_valid):
     return unique_valid - to_drop
 
 def scaled_count(count, bands):
+    """Returns score from the first band where count falls between min and max. if no band matches return 0 score"""
     for min_count, max_count, score in bands:
         if min_count <= count <= max_count:
             return score
@@ -250,12 +251,14 @@ def p_word_root(word):
     return None
 
 def score_letter_fluency(response):
+    """Scores valid P words a person produces and converts into fluency score 0-7"""
     words = clean_response(response).split()
     roots = {p_word_root(w) for w in words}
     roots.discard(None)
     return scaled_count(len(roots), LETTER_FLUENCY_BANDS)
 
 def score_animal_fluency(response):
+    """Counts distinct valid animals a person mentions and converts into count fluency score 0-7"""
     global _ANIMALS
     if _ANIMALS is None:
         _ANIMALS = get_animals()
@@ -356,13 +359,11 @@ def _score_infinity_diagram_visual(image_path, response):
     from visual_tasks.infinity_scorer import score_infinity_image
     return score_infinity_image(response)["total"]
 
-
 def _score_writing_visual(image_path, response):
     if not response:
         return None
     from visual_tasks.writing import score_writing_image
     return score_writing_image(response)["total"]
-
 
 def _score_pen_paper_visual(image_path, response):
     if not response:

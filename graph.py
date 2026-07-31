@@ -10,7 +10,7 @@ from LLM.dialogue import *
 from marking.marking import *
 from voice.tts import TTSEngine
 from voice.capture import AudioCapture
-from voice.config import FLUENCY_SILENCE_DURATION
+from voice import FLUENCY_SILENCE_DURATION
 from datetime import datetime
 from data_loader import get_session_config, resolve_dynamic_answers, get_season_transition
 from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question, task_modality
@@ -59,8 +59,7 @@ for _domain in ACE_DATA.values():
         _original_answers = _question["answers"]
         if "DYNAMIC:season" in _original_answers:
             _question["season_sub_index"] = _original_answers.index("DYNAMIC:season")
-        # Only set when session_config records a recent leadership change —
-        # the outgoing-leader probe is a no-op otherwise.
+       
         if "DYNAMIC:uk_prime_minister" in _original_answers and _session_config.get("previous_uk_pm"):
             _question["outgoing_leader"] = _session_config["previous_uk_pm"]
         if "DYNAMIC:us_president" in _original_answers and _session_config.get("previous_us_president"):
@@ -519,9 +518,8 @@ def _interpret_ace_total(total: int) -> str:
 
 def report_node(state: ACEState) -> dict:
     """
-    
+    Finishes the ACE-III test reports the scores. Generates a JSON file and ends the session
     """
-
     scores = state["scores"]
     total = sum(scores.values())
     interpretation = _interpret_ace_total(total)

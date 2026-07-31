@@ -4,9 +4,6 @@ from datetime import datetime, timedelta
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "json/session_config.json")
 
-DATE_TOLERANCE_DAYS = 2
-SEASON_TRANSITION_WINDOW_DAYS = 7
-
 def get_season(date):
     month = date.month
     if month in [12, 1, 2]:
@@ -23,10 +20,10 @@ def get_season_transition(now):
     season if `now` is within SEASON_TRANSITION_WINDOW_DAYS of a season boundary,
     else None. Used to give a leniency reprompt near season changes."""
     true_season = get_season(now)
-    forward = get_season(now + timedelta(days=SEASON_TRANSITION_WINDOW_DAYS))
+    forward = get_season(now + timedelta(days=7))
     if forward != true_season:
         return true_season, forward
-    backward = get_season(now - timedelta(days=SEASON_TRANSITION_WINDOW_DAYS))
+    backward = get_season(now - timedelta(days=7))
     if backward != true_season:
         return true_season, backward
     return true_season, None
@@ -42,11 +39,11 @@ def resolve_dynamic_answers(answers, session_config):
         if answer == "DYNAMIC:day_of_week":
             resolved.append(now.strftime("%A"))
         elif answer == "DYNAMIC:date":
-            # +/- DATE_TOLERANCE_DAYS is allowed per ACE-III administration rules;
+            # +/- 2 is allowed per ACE-III administration rules;
             # real date arithmetic handles month-boundary wraparound correctly.
             resolved.append([
                 str((now + timedelta(days=offset)).day)
-                for offset in range(-DATE_TOLERANCE_DAYS, DATE_TOLERANCE_DAYS + 1)
+                for offset in range(-2, 2 + 1)
             ])
         elif answer == "DYNAMIC:month":
             resolved.append(now.strftime("%B"))

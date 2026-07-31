@@ -1,11 +1,15 @@
 import numpy as np
 import sounddevice as sd
 from faster_whisper import WhisperModel
-from voice.config import WHISPER_RATE, AUDIO_CHUNK, SILENCE_THRESHOLD, SILENCE_DURATION, MAX_RESPONSE_DURATION
+
+SILENCE_THRESHOLD = 0.02
+SILENCE_DURATION = 1.5
+MAX_RESPONSE_DURATION = 60
+FLUENCY_SILENCE_DURATION = 10
 
 class AudioCapture:
     def __init__(self, model_size="large", silence_timeout=SILENCE_DURATION, model=None):
-        self.sample_rate = WHISPER_RATE
+        self.sample_rate = 16000
         self.silence_timeout = silence_timeout
 
         if model is not None:
@@ -21,13 +25,13 @@ class AudioCapture:
         print("[Audio] Listening for response...")
 
         recording_buffer = []
-        silent_chunks_limit = int((self.silence_timeout * self.sample_rate) / AUDIO_CHUNK)
+        silent_chunks_limit = int((self.silence_timeout * self.sample_rate) / 1024)
         silent_chunks_count = 0
         has_spoken = False
 
         with sd.InputStream(samplerate=self.sample_rate, channels=1, dtype='float32') as stream:
             while True:
-                chunk, overflowed = stream.read(AUDIO_CHUNK)
+                chunk, overflowed = stream.read(1024)
                 recording_buffer.append(chunk)
                 if on_tick is not None:
                     on_tick()
@@ -45,7 +49,7 @@ class AudioCapture:
                     print("[Audio] Silence detected. Processing speech...")
                     break
 
-                if len(recording_buffer) * AUDIO_CHUNK > self.sample_rate * MAX_RESPONSE_DURATION:
+                if len(recording_buffer) * 1024 > self.sample_rate * MAX_RESPONSE_DURATION:
                     print("[Audio] Max time limit reached. Processing...")
                     break
 

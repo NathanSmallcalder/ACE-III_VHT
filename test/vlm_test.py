@@ -14,14 +14,14 @@ CLOCKS_DIR = os.path.join(os.path.dirname(__file__), "Clocks")
 INFINITY_DIR = os.path.join(os.path.dirname(__file__), "InfinitySymbol")
 CUBE_DIR = os.path.join(os.path.dirname(__file__), "cube")
 
+"""
 CLAUDE_MODEL = "claude-opus-5"
-
 @pytest.fixture(autouse=True, scope="module")
 def use_claude_vlm():
     client = ChatAnthropic(
         model=CLAUDE_MODEL,
         api_key=os.environ["CLAUDE"],
-        max_tokens=8000,
+        max_tokens=10000,
         thinking={"type": "adaptive"},
     )
     originals = {
@@ -34,7 +34,7 @@ def use_claude_vlm():
     yield
     for module, original_llm in originals.items():
         module.llm = original_llm
-
+"""
 def _collect_cases(DIR):
     """Each subfolder of DIR is named after the expected total score
     (e.g. Clocks/3/ contains clock images that should score 3)."""

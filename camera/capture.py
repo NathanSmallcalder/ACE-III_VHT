@@ -33,14 +33,11 @@ def apply_brightness_contrast(input_img, brightness=0, contrast=0):
         buf = cv2.addWeighted(input_img, alpha_b, input_img, 0, gamma_b)
     else:
         buf = input_img.copy()
-
     if contrast != 0:
         f = 131 * (contrast + 127) / (127 * (131 - contrast))
         alpha_c = f
         gamma_c = 127 * (1 - f)
-
         buf = cv2.addWeighted(buf, alpha_c, buf, 0, gamma_c)
-
     return buf
 
 
@@ -68,13 +65,11 @@ def _find_document_contour(frame):
         if len(approx) == 4:
             multiplier = frame.shape[1] / size[0]
             return np.squeeze(approx, axis=1).astype(float) * multiplier
-
     return None
 
 
 def _rectify(frame, points=None):
-    """Warp `frame` to a top-down view of the detected document. Falls back to the
-    raw frame if no quadrilateral could be found."""
+    """Upon finding a valid document the image is cropped around the paper"""
     if points is None:
         points = _find_document_contour(frame)
     if points is None:

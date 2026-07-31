@@ -2,7 +2,6 @@ import re
 from langchain_core.messages import SystemMessage, HumanMessage
 from LLM.LLM import llm_strict, llm_warm
 
-""" Introduce the patient to the assessment. """
 def introduce(patient_name: str) -> str:
     """Brief, warm one-time introduction spoken before the very first question of the session."""
     result = llm_warm.invoke([
@@ -17,7 +16,7 @@ def introduce(patient_name: str) -> str:
     ])
     return result.content.strip().strip('"')
 
-"""Short, natural acknowledgment of the patient's last answer, spoken before the next question."""
+
 def acknowledge(last_response: str) -> str:
     """Short, natural acknowledgment of the patient's last answer, spoken before the next question."""
     result = llm_warm.invoke([
@@ -36,10 +35,11 @@ def acknowledge(last_response: str) -> str:
     ])
     return result.content.strip().strip('"')
 
-"""Cue spoken when moving to a different kind of task (domain or response
-modality changed). Never names the clinical domain/task, to avoid priming
-the patient."""
+
 def transition() -> str:
+    """Cue spoken when moving to a different kind of task (domain or response
+    modality changed). Never names the clinical domain/task, to avoid priming
+    the patient."""
     result = llm_warm.invoke([
         SystemMessage(content=(
             "You are a warm clinical assessor moving from one part of a cognitive "
@@ -81,7 +81,7 @@ def resolve_wrapper(state, patient_name: str, domain: str, modality: str, sub_in
     return acknowledge(last_patient) if last_patient else ""
 
 
-""" Question Rephrasing """
+
 def rephrase_question(question_text: str) -> str:
     """Rephrased version of the question spoken when the patient didn't understand."""
     result = llm_warm.invoke([
@@ -100,10 +100,7 @@ def is_finished_drawing(response: str) -> bool:
     show their drawing, as opposed to anything else (still working,
     describing progress, a question, an unrelated remark, not ready yet).
     Used during the drawing-task capture wait, where the patient hasn't been
-    asked a specific question — classify_turn's answer/repeat/off_topic/
-    incomplete labels don't map cleanly onto that (e.g. 'not yet' is a
-    genuine 'answer' to an implicit readiness check, but must not end the
-    task early)."""
+    asked a specific question """
     out = llm_strict.invoke([
         SystemMessage(content=(
             "The patient is doing a drawing task and has not been asked a specific "

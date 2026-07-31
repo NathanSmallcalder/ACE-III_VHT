@@ -16,7 +16,7 @@ where the line crosses itself to a sharp point — it must look like an infinity
 or ovals merely touching or fused together.
 
 Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing.
-Respond with a single JSON object and nothing else — no preamble, no explanation, no markdown fences.
+Respond with a single JSON object and nothing else — no explanation.
 
 {
   "figure_eight_count": "<integer, or unclear — how many distinct figure-eight/infinity shapes are drawn (each made of two loops crossing at its own central waist)>",
