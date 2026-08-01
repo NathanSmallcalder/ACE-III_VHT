@@ -8,14 +8,9 @@ import re
 import time
 from LLM.dialogue import *
 from marking.marking import *
-from voice.tts import TTSEngine
-from voice.capture import AudioCapture
-from voice import FLUENCY_SILENCE_DURATION
 from datetime import datetime
-from data_loader import get_session_config, resolve_dynamic_answers, get_season_transition
+from data_loader import resolve_dynamic_answers, get_season_transition
 from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question, task_modality
-from virtual_avatar.avatar import furhat_connect
-from ui.session_window import SessionWindow
 
 class ACEState(MessagesState):
     current_domain: str
@@ -26,7 +21,7 @@ class ACEState(MessagesState):
     domain_queue: list
     complete: bool
     needs_repeat: bool
-    repeat_count: int  
+    repeat_count: int
     reprompt_kind: str   # None | "season" | "name" | "leader" | "trial"
     turn_progress: int   # generic per-question counter; meaning depends on the active handler
     recall_matches: dict  # recall_key -> per-answer bool list, for recognition-task skip logic
@@ -34,37 +29,40 @@ class ACEState(MessagesState):
     question_turn_start: int  # index into messages where the in-progress question's turns began
     previous_task_signature: tuple  # (domain, modality) of the most recently finished question, or None
 
-_session_config = get_session_config()
 
-"""
-Iniit furhat and tts engine
-"""
-furhat = furhat_connect()
-tts = TTSEngine(furhat)
-
-"""
-Whisper Call
-"""
-_audio = AudioCapture()
-_audio_fluency = AudioCapture(silence_timeout=FLUENCY_SILENCE_DURATION, model=_audio.model)
-_gui = SessionWindow()
+_session_config = None
+tts = None
+_audio = None
+_audio_fluency = None
+_gui = None
 
 with open("json/ACE-III.json", "r") as f:
     ACE_DATA = json.load(f)["Domains"]
 
 SEASON_TRUE, SEASON_ADJACENT = get_season_transition(datetime.now())
 
-for _domain in ACE_DATA.values():
-    for _question in _domain["questions"]:
-        _original_answers = _question["answers"]
-        if "DYNAMIC:season" in _original_answers:
-            _question["season_sub_index"] = _original_answers.index("DYNAMIC:season")
-       
-        if "DYNAMIC:uk_prime_minister" in _original_answers and _session_config.get("previous_uk_pm"):
-            _question["outgoing_leader"] = _session_config["previous_uk_pm"]
-        if "DYNAMIC:us_president" in _original_answers and _session_config.get("previous_us_president"):
-            _question["outgoing_leader"] = _session_config["previous_us_president"]
-        _question["answers"] = resolve_dynamic_answers(_original_answers, _session_config)
+def configure(session_config, tts_engine, audio, audio_fluency, gui):
+    """Wire up the runtime dependencies the graph's nodes read from module
+    globals, and resolve every question's DYNAMIC answers against
+    session_config. Must be called once before graph.invoke(...)."""
+    global _session_config, tts, _audio, _audio_fluency, _gui
+    _session_config = session_config
+    tts = tts_engine
+    _audio = audio
+    _audio_fluency = audio_fluency
+    _gui = gui
+
+    for _domain in ACE_DATA.values():
+        for _question in _domain["questions"]:
+            _original_answers = _question["answers"]
+            if "DYNAMIC:season" in _original_answers:
+                _question["season_sub_index"] = _original_answers.index("DYNAMIC:season")
+
+            if "DYNAMIC:uk_prime_minister" in _original_answers and session_config.get("previous_uk_pm"):
+                _question["outgoing_leader"] = session_config["previous_uk_pm"]
+            if "DYNAMIC:us_president" in _original_answers and session_config.get("previous_us_president"):
+                _question["outgoing_leader"] = session_config["previous_us_president"]
+            _question["answers"] = resolve_dynamic_answers(_original_answers, session_config)
 
 """Apply question/domain caps, add to the running score, and clear all
 reprompt/progress state. Every handler and the default scoring path end
@@ -361,10 +359,11 @@ def conversation_node(state: ACEState) -> dict:
     _gui.add_message("assessor", spoken_text)
     tts.speak(spoken_text)
 
+    question_key = (domain, q_index, sub_index)
     for _ in range(5):
         user_input = (
-            _audio_fluency.capture_response(on_tick=_gui.pump) if domain == "Fluency"
-            else _audio.capture_response(on_tick=_gui.pump)
+            _audio_fluency.capture_response(on_tick=_gui.pump, question_key=question_key) if domain == "Fluency"
+            else _audio.capture_response(on_tick=_gui.pump, question_key=question_key)
         )
         if not user_input:
             print("[no response detected]")
@@ -617,8 +616,6 @@ def save_progress(state: ACEState) -> str:
         }, f, indent=2)
 
     return out_path
-
-
 
 builder = StateGraph(ACEState)
 builder.add_node("conversation", conversation_node)

@@ -26,28 +26,29 @@ from visual_tasks.visual import is_click_point_question
 
 
 class ReplayAudio:
-    """Feeds pre-generated answers to capture_response() in order. If asked more times
-    than there are answers (a reprompt/retry), repeats the last answer rather than
-    crashing -- a consistent persona just says the same thing again."""
+    """Feeds pre-generated answers to capture_response() in order. Only advances to
+    the next answer when question_key changes from the previous call -- so a reprompt
+    (registration/name-address trials, a non-answer retry, person_name follow-ups,
+    season, ...) correctly repeats the same answer instead of consuming the next
+    question's answer. graph.py passes question_key=(domain, q_index, sub_index),
+    which only changes once a question is actually finalized."""
 
     def __init__(self, answers):
         self._answers = list(answers)
-        self._index = 0
+        self._index = -1
+        self._last_key = object()  # sentinel: never equals a real question_key
 
-    def capture_response(self, on_tick=None):
-        if self._index < len(self._answers):
-            answer = self._answers[self._index]
+    def capture_response(self, on_tick=None, question_key=None):
+        if question_key != self._last_key:
+            self._last_key = question_key
             self._index += 1
-        else:
-            answer = self._answers[-1] if self._answers else ""
+        answer = self._answers[self._index] if self._index < len(self._answers) else ""
         print("Patient:", answer)
         return answer
-
 
 class NullTTS:
     def speak(self, text):
         print("Assessor:", text)
-
 
 class NullGUI:
     def add_message(self, role, text):
@@ -71,44 +72,20 @@ class NullGUI:
 
 def _visual_and_click_question_texts():
     """question_text of every real question routed through run_visual_task/run_click_task
-    (match_type=='visual' or a click-point question) -- those never consume from _audio,
-    so their transcript entries must be excluded when building the audio queue, or they'd
-    just sit there unconsumed and permanently shift every later question out of position."""
-    texts = set()
-    for domain in graph.ACE_DATA.values():
-        for question in domain["questions"]:
-            if question.get("match_type") == "visual" or is_click_point_question(question):
-                texts.add(question["question_text"])
-    return texts
-
-
-def _repeat_count(entry):
-    """How many times the real state machine will call capture_response() for this
-    question, regardless of how good the model is -- both are deterministic, not
-    LLM-compliance noise: _handle_name_address_trials always repeats 3 times, and
-    _handle_registration repeats up to 3 times whenever the ground truth isn't a
-    perfect score (it only stops early on an all-correct trial)."""
-    question = entry["Question"]
-    if question.startswith("Name and address learning:"):
-        return 3
-    if question.startswith("Registration:"):
-        return 1 if entry["Ground_Truth"] == entry["Score_Cap"] else 3
-    return 1
-
+    -- those never call capture_response, so their transcript entries must be excluded
+    from the audio queue or they'd just sit there unconsumed forever."""
+    return {
+        question["question_text"]
+        for domain in graph.ACE_DATA.values()
+        for question in domain["questions"]
+        if question.get("match_type") == "visual" or is_click_point_question(question)
+    }
 
 def _flatten(transcript, domains, skip_questions):
     """All 'Awnsered' values across the given domains, in transcript order, excluding
-    visual/click items (see _visual_and_click_question_texts) and repeating trial-based
-    questions the same number of times the real state machine will ask them (see
-    _repeat_count) so the queue doesn't desync on the very first one."""
-    answers = []
-    for domain in domains:
-        for entry in transcript.get(domain, []):
-            if entry["Question"] in skip_questions:
-                continue
-            answers.extend([entry["Awnsered"]] * _repeat_count(entry))
-    return answers
-
+    visual/click items (see _visual_and_click_question_texts)."""
+    return [entry["Awnsered"] for domain in domains for entry in transcript.get(domain, [])
+            if entry["Question"] not in skip_questions]
 
 def _by_question_text(transcript):
     """question_text -> Awnsered, across every domain in the transcript."""
@@ -117,7 +94,6 @@ def _by_question_text(transcript):
         for items in transcript.values() if isinstance(items, list)
         for entry in items
     }
-
 
 def _make_visual_stubs(transcript):
     """Replacements for graph.run_visual_task / graph.run_click_task -- feed the

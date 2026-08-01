@@ -18,10 +18,12 @@ class AudioCapture:
             print("[Audio] Loading Whisper model... (")
             self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
-    def capture_response(self, on_tick=None) -> str:
+    def capture_response(self, on_tick=None, question_key=None) -> str:
         """`on_tick`, if given, is called once per audio chunk (~every
         AUDIO_CHUNK samples) — main-thread only, e.g. to keep a Tk window's
-        event loop serviced during a long silent wait."""
+        event loop serviced during a long silent wait. `question_key` is
+        unused here (real hardware just listens); replay/testing stand-ins
+        use it to tell a retry of the same question apart from a new one."""
         print("[Audio] Listening for response...")
 
         recording_buffer = []

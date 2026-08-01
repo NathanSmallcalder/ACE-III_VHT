@@ -12,3 +12,5 @@ eval_results.csv
 results/
 # Captured photos/videos/frames from webcam test runs
 data/
+.csv
+

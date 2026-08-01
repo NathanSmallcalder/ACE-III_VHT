@@ -1,10 +1,15 @@
-from graph import graph, ACE_DATA
+from graph import graph, configure, ACE_DATA
+from data_loader import get_session_config
+from virtual_avatar.avatar import furhat_connect
+from voice.tts import TTSEngine
+from voice.capture import AudioCapture, FLUENCY_SILENCE_DURATION
+from ui.session_window import SessionWindow
 
 DOMAIN_ORDER = list(ACE_DATA.keys())
 
 initial_state = {
     "messages": [],
-    "current_domain": "Visuospatial",   # DOMAIN_ORDER[0],
+    "current_domain": "Memory",   # DOMAIN_ORDER[0],
     "question_index": 0,
     "sub_question_index": 0,
     "question_score": 0,
@@ -22,4 +27,12 @@ initial_state = {
 }
 
 if __name__ == "__main__":
+    session_config = get_session_config()
+    furhat = furhat_connect()
+    tts = TTSEngine(furhat)
+    audio = AudioCapture()
+    audio_fluency = AudioCapture(silence_timeout=FLUENCY_SILENCE_DURATION, model=audio.model)
+    gui = SessionWindow()
+
+    configure(session_config, tts, audio, audio_fluency, gui)
     graph.invoke(initial_state)
