@@ -208,6 +208,11 @@ def get_animals():
                 animals.add(lemma.name().lower().replace("_", " "))
     return animals
 
+ANIMAL_TYPES = {
+    "fish", "bird", "insect", "reptile", "mammal", "rodent",
+    "amphibian", "primate", "bug", "animal", "shellfish", "arachnid",
+}
+
 def _drop_subsumed_categories(unique_valid):
     """If a more specific animal word is also present, drop the class its assumed in
     (e.g. 'fish' dropped when 'salmon' and
@@ -221,6 +226,8 @@ def _drop_subsumed_categories(unique_valid):
 
     to_drop = set()
     for w, ss_w in synset_of.items():
+        if w not in ANIMAL_TYPES:
+            continue
         for x, ss_x in synset_of.items():
             if w != x and ss_w in ss_x.closure(lambda s: s.hypernyms()):
                 to_drop.add(w)
