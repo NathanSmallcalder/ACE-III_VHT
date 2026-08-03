@@ -2,25 +2,21 @@ import json
 import os
 
 import pandas as pd
-from langchain_core.messages import SystemMessage
 
-import synthetic_personas.persona_scorer as ps
+import synthetic_personas.persona_prompt as ps
 from data_loader import get_session_config, _name_and_surname
 
-CSV_PATH = "synthetic_ace3.csv"
+CSV_PATH = "synthetic_personas/synthetic_ace3.csv"
 OUTPUT_DIR = "synthetic_transcripts"
 SAMPLE_SIZE = 1
 
 
 def speak(instruction_text):
     """Send an instruction through the LLM and return the persona's spoken reply."""
-    prompt = ps.PREAMBLE + "\n" + instruction_text
-    result = ps.llm_warm.invoke([SystemMessage(content=prompt)])
-    return result.content.strip()
-
+    return ps._ask(ps.PREAMBLE + "\n" + instruction_text)
 
 def item(question_text, score_cap, ground_truth, answered):
-    return {"Question": question_text, "Score_Cap": score_cap, "Ground_Truth": ground_truth, "Awnsered": answered}
+    return {"Question": question_text, "Score_Cap": score_cap, "Ground_Truth": ground_truth, "Answered": answered}
 
 TIME_FIELD_QUESTIONS = {
     "time": "Orientation to Time: What day of the week is it?",
@@ -36,8 +32,6 @@ PLACE_FIELD_QUESTIONS = {
     "county": "Orientation to Place: Which county are we in?",
     "country": "Orientation to Place: Which country are we in?",
 }
-
-
 def attention_items(row, session_config):
     items = []
 
@@ -119,11 +113,13 @@ def language_items(row):
 
     score = int(row["verbal_repetition"])
     word_correct_count = {2: 4, 1: 3, 0: 0}[score]
-    word_texts = ps.word_repetition(word_correct_count)
-    word_wrong = set(ps.WORD_DROP_ORDER[:4 - word_correct_count])
-    for word, text in word_texts.items():
-        ground_truth = 0 if word in word_wrong else 1
-        items.append(item(f"Word repetition: Repeat after me - {word}.", 1, ground_truth, speak(text)))
+    word_texts = list(ps.word_repetition(word_correct_count).items())
+    # Real graph scores these 4 turns as one combined question (score_cap 2, via
+    # sub_score_bands), not 4 independent 1-point words -- put the whole cap/ground
+    # truth on the last turn so the summed total still matches the real one.
+    for i, (word, text) in enumerate(word_texts):
+        cap, ground_truth = (2, score) if i == len(word_texts) - 1 else (0, 0)
+        items.append(item(f"Word repetition: Repeat after me - {word}.", cap, ground_truth, speak(text)))
 
     score = int(row["verbal_repetition_2"])
     sentence_1_score = 1 if score >= 1 else 0
@@ -176,23 +172,41 @@ def visuospatial_items(row):
         "Dot counting: Count the dots in the fourth array.",
     ]
     score = int(row["dot_counting"])
-    for i, (question_text, true_count) in enumerate(zip(dot_questions, ps.dot_answers)):
+    for i, (question_text, true_count) in enumerate(zip(dot_questions, ps.DOT_ANSWERS)):
         sub_score = 1 if i < score else 0
         items.append(item(question_text, 1, sub_score, speak(ps.dot_counting(sub_score, true_count))))
 
     score = int(row["fragmented_letters"])
-    for i, true_letter in enumerate(ps.correct_letters):
+    for i, true_letter in enumerate(ps.FRAGMENTED_LETTERS_ANSWERS):
         sub_score = 1 if i < score else 0
         items.append(item("Fragmented letters: Identify the fragmented letter.",
                            1, sub_score, speak(ps.fragmented_letters(sub_score, true_letter))))
 
-    score = int(row["delayed_recall"])
+    recall_score = int(row["delayed_recall"])
     items.append(item("Delayed recall: Recall the name and address from earlier.",
-                       7, score, speak(ps.recall_memory(score))))
+                       7, recall_score, speak(ps.recall_memory(recall_score))))
 
-    score = int(row["recognition"])
-    for key, text in ps.recognition(score).items():
-        items.append(item(f"Recognition: {ps.RECOGNITION_QUESTIONS[key]}", 1, 0, speak(text)))
+
+    # Mimicing the graph recall questions when a user can recall one element.
+    RECALL_GROUP_END = {"name": 2, "number": 3, "street": 5, "town": 6, "county": 7}
+    wrong_left = 5 - int(row["recognition"])
+    for key in ps.RECOGNITION_DROP_ORDER:
+        if recall_score >= RECALL_GROUP_END[key]:
+            # Not actually asked -- graph.py auto-credits this element since it was
+            # already recalled correctly in delayed recall (see _recognition_recalled).
+            # Deliberately not added to `items`: this list doubles as replay_pipeline's
+            # literal audio-answer feed, and an entry here with no real spoken answer
+            # would misalign every real question asked after it.
+            continue
+        if wrong_left > 0:
+            text = (f"You are asked whether the {key} was {ps.RECOGNITION_OPTIONS[key]}. "
+                    f"Say anything but '{ps.RECOGNITION_OPTIONS[key]}'.")
+            ground_truth = 0
+            wrong_left -= 1
+        else:
+            text = f"You correctly say '{ps.RECOGNITION_ANSWERS[key]}'."
+            ground_truth = 1
+        items.append(item(f"Recognition: {ps.RECOGNITION_QUESTIONS[key]}", 1, ground_truth, speak(text)))
 
     return items
 
@@ -220,6 +234,7 @@ def main():
             "participant_id": participant_id,
             "cognitive_status": cognitive_status,
             **run_persona(row, session_config),
+            
         }
 
         out_path = os.path.join(OUTPUT_DIR, f"{participant_id}_{cognitive_status}.json")

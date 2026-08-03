@@ -71,14 +71,19 @@ def resolve_wrapper(state, patient_name: str, domain: str, modality: str, sub_in
         return ""
 
     previous_signature = state.get("previous_task_signature")
+    """Transition Task to Paper"""
     if previous_signature is not None and previous_signature != (domain, modality):
+        return transition()
+    if domain == "Visuospatial" and modality == "click" and previous_signature != (domain, modality):
         return transition()
 
     last_patient = next(
         (m.content for m in reversed(state["messages"]) if isinstance(m, HumanMessage)),
         None
     )
-    return acknowledge(last_patient) if last_patient else ""
+    if last_patient:
+        return acknowledge(last_patient)
+    return ""
 
 
 

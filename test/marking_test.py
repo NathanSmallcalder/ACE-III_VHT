@@ -47,6 +47,7 @@ integer_cases = {
     "spam_lands_on_target_last": ("is it seven, eight, nine, or ten", ["10"], 1),
     "drifts_to_different_number_after_target": ("is it ten, nine, eight, or seven", ["10"], 0),
     "genuine_correction_away_from_target": ("is it ten no wait seven", ["10"], 0),
+    "spam_same_awnser": ("ten yes ten, ten", ["10"],1)
 }
 
 @pytest.mark.parametrize(
@@ -68,6 +69,7 @@ fuzzy_cases = {
     "embedded_in_sentence": ("I think it's the penguin one", ["penguin", "4"], 1),
     "phonetic_match": ("pengwin", ["penguin", "4"], 1),
     "spam_answer": ("is it the crown, the kangaroo, or the penguin", ["crown", "10"], 1),
+    "wrong_correction":("the capital of Kent is definitely Dover.", ["Kent"], 0)
 }
 
 @pytest.mark.parametrize(

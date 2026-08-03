@@ -15,9 +15,6 @@ class SessionWindow:
         self.root.title(title)
         self.root.geometry("1100x700")
 
-        # Patient-facing: the only window in the session must not be
-        # closable by an accidental click — there is no "reopen" path once
-        # it's gone. Escape is the assessor's deliberate escape hatch.
         self.root.protocol("WM_DELETE_WINDOW", lambda: None)
         self.root.bind("<Escape>", lambda _e: self.close())
 

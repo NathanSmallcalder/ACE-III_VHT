@@ -82,15 +82,15 @@ def _visual_and_click_question_texts():
     }
 
 def _flatten(transcript, domains, skip_questions):
-    """All 'Awnsered' values across the given domains, in transcript order, excluding
+    """All 'Answered' values across the given domains, in transcript order, excluding
     visual/click items (see _visual_and_click_question_texts)."""
-    return [entry["Awnsered"] for domain in domains for entry in transcript.get(domain, [])
+    return [entry["Answered"] for domain in domains for entry in transcript.get(domain, [])
             if entry["Question"] not in skip_questions]
 
 def _by_question_text(transcript):
-    """question_text -> Awnsered, across every domain in the transcript."""
+    """question_text -> Answered, across every domain in the transcript."""
     return {
-        entry["Question"]: entry["Awnsered"]
+        entry["Question"]: entry["Answered"]
         for items in transcript.values() if isinstance(items, list)
         for entry in items
     }
@@ -123,8 +123,7 @@ def _patch_visual_task_scoring():
     The replay's answers for those two are already real text/JSON (persona_scorer.py
     asks the LLM to reply with actual sentences / the real scorer's own JSON shape), so
     patch the underlying scorers to score that directly instead of trying to open a
-    nonexistent file. marking.py imports both lazily (inside the function body) at call
-    time, so patching the module attribute here is picked up automatically."""
+    nonexistent file. """
     def score_writing_image(response_text):
         total = writing_scorer.score_sentence_writing(response_text) if response_text else 0
         return {"total": total}
@@ -167,7 +166,7 @@ def run_replay(transcript_path):
         "sub_question_index": 0,
         "question_score": 0,
         "scores": {domain: 0 for domain in domain_order},
-        "domain_queue": domain_order[1:],
+        "domain_queue": [d for d in domain_order[1:] if d != "Fluency"],  # Fluency is reached via advance_node's mid-Memory detour
         "complete": False,
         "needs_repeat": False,
         "repeat_count": 0,

@@ -100,7 +100,7 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str, tts
     done = {"v": False}
     voice_finished = {"v": False}
     stop_listening = threading.Event()
-    timer_ids = {"tick": None, "poll": None}
+    timer_ids = {"tick": None}
     checkin_state = {"in_progress": False, "count": 0}
 
     def _speak_checkin():
@@ -120,12 +120,11 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str, tts
             return
         done["v"] = True
         stop_listening.set()
-        for tid in (timer_ids["tick"], timer_ids["poll"]):
-            if tid is not None:
-                try:
-                    root.after_cancel(tid)
-                except tk.TclError:
-                    pass
+        if timer_ids["tick"] is not None:
+            try:
+                root.after_cancel(timer_ids["tick"])
+            except tk.TclError:
+                pass
         timer_label.config(text=label_text, fg="red")
         status_label.config(text="Please hold your drawing steady facing the camera...")
         root.update()
@@ -158,14 +157,6 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str, tts
         else:
             finish("Time's up!")
 
-    def poll_voice():
-        if done["v"] or not timer_label.winfo_exists():
-            return
-        if voice_finished["v"]:
-            finish("Finished!")
-            return
-        timer_ids["poll"] = root.after(200, poll_voice)
-
     def listen_for_finish():
         while not stop_listening.is_set():
             text = audio.capture_response()
@@ -179,7 +170,6 @@ def _launch_camera_capture(gui, output_path: str, audio, question_text: str, tts
     listener.start()
 
     tick()
-    poll_voice()
     root.mainloop()
 
     stop_listening.set()
@@ -322,11 +312,7 @@ def run_click_task(state, question: dict, tts, session_config: dict, next_questi
     if state.get("needs_repeat"):
         spoken_text = rephrase_question(text)
     else:
-        wrapper = resolve_wrapper(
-            state, session_config["patient"]["name"], state["current_domain"],
-            task_modality(question), state.get("sub_question_index", 0),
-        )
-        spoken_text = f"{wrapper} {text}".strip() if wrapper else text
+        spoken_text = f"You need to click on the screen now. {text}"
     print("Assessor:", spoken_text)
     gui.add_message("assessor", spoken_text)
     tts.speak(spoken_text)

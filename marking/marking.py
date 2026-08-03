@@ -113,7 +113,7 @@ def score_fuzzy(response, answers):
         for n in range(1, min(MAX_FUZZY_WINDOW, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
                 window = normalise_number(" ".join(response_words[i:i + n]))
-                if rapidfuzz.fuzz.ratio(window, expected) >= FUZZY_THRESHOLD or phonetic_equal(window, expected):
+                if rapidfuzz.fuzz.partial_ratio(window, expected) >= FUZZY_THRESHOLD or phonetic_equal(window, expected):
                     return 1
     return 0
 
@@ -130,7 +130,7 @@ def _norm(text):
 def _same(a, b):
     return rapidfuzz.fuzz.ratio(a, b) >= FUZZY_THRESHOLD or phonetic_equal(a, b)
 
-def _last_full_name_match_is_final(words, full):
+def last_full_name_match_is_final(words, full):
     """True if one of the full-name answers has a matching window in `words`
     and nothing but filler follows it -- i.e. it's the last name actually
     claimed, not one of several names listed before moving on to another
@@ -153,7 +153,7 @@ def score_person_name(response, answers):
     filler/honorifics) counts; a surname preceded by a substantive but wrong
     given name does not."""
     full = [a for a in answers if len(a.split()) > 1]
-    if full and _last_full_name_match_is_final(_norm(response), full):
+    if full and last_full_name_match_is_final(_norm(response), full):
         return 1
 
     surnames = [_norm(a)[0] for a in answers if len(a.split()) == 1]

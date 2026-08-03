@@ -1,7 +1,7 @@
 import random
 import pandas as pd
 
-ITEMS = [
+items = [
     # Attention / Orientation (18)
     ("orientation_date",     "attention_orientation", 5),
     ("orientation_location", "attention_orientation", 5),
@@ -32,47 +32,39 @@ ITEMS = [
     ("fragmented_letters",   "visuospatial", 4),
 ]
 
-DOMAINS = ["attention_orientation", "memory", "fluency", "language", "visuospatial"]
+domains = ["attention_orientation", "memory", "fluency", "language", "visuospatial"]
 
-# Each cognitive status has a "percent correct" range. A persona's score on
-# every item is max_score times a random percent drawn from its status's
-# range, so the whole profile is consistently healthy/mci/dementia_risk
-# rather than each item being independently random.
-STATUS_RANGES = {
-    "healthy": (0.90, 1.00),
-    "mci": (0.65, 0.89),
-    "dementia_risk": (0.30, 0.64),
+ranges = {
+    "healthy": (0.88, 1.00),
+    "mci": (0.65, 0.87),
+    "dementia": (0.30, 0.64),
 }
-STATUS_WEIGHTS = {"healthy": 0.7, "mci": 0.2, "dementia_risk": 0.1}
+indicator = {"healthy": 0.33, "mci": 0.33, "dementia": 0.33}
 
 def make_profile(pid: str) -> dict:
     row = {"participant_id": pid}
 
-    status = random.choices(list(STATUS_WEIGHTS), weights=list(STATUS_WEIGHTS.values()))[0]
+    status = random.choices(list(indicator), weights=list(indicator.values()))[0]
     row["cognitive_status"] = status
-    low, high = STATUS_RANGES[status]
+    low, high = ranges[status]
 
-    row["age_at_assessment"] = round(random.gauss(77, 2))
-
-    for name, _domain, max_score in ITEMS:
+    for name, _domain, max_score in items:
         percent_correct = random.uniform(low, high)
         row[name] = round(percent_correct * max_score)
 
-    for domain in DOMAINS:
-        row[domain] = sum(row[name] for name, d, _ in ITEMS if d == domain)
+    for domain in domains:
+        row[domain] = sum(row[name] for name, d, _ in items if d == domain)
 
-    row["ace3_total"] = sum(row[domain] for domain in DOMAINS)
-    row["test_complete"] = 1
-    row["time_minutes"] = round(random.gauss(18.5, 2.5), 1)
+    row["ace3_total"] = sum(row[domain] for domain in domains)
 
     return row
 
-def generate(n=1000, seed=42):
+def generate(n=100, seed=42):
     random.seed(seed)
-    return pd.DataFrame([make_profile(f"NSHD{100000 + i}") for i in range(n)])
+    return pd.DataFrame([make_profile(f"Participant_{i}") for i in range(n)])
 
 if __name__ == "__main__":
-    df = generate(1000)
+    df = generate(100)
     df.to_csv("synthetic_ace3.csv", index=False)
     print(f"Wrote {len(df)} profiles. Total score: mean {df['ace3_total'].mean():.1f}, "
           f"range {df['ace3_total'].min()}-{df['ace3_total'].max()}")
