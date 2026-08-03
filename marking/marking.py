@@ -182,11 +182,12 @@ def score_all_correct_list(response, answers):
     return 1 if score_fuzzy_list(response, answers) == len(answers) else 0
 
 def score_sentence_repetition(response, answers):
-    """Whole-phrase fuzzy match. Unlike score_fuzzy's n-gram sliding window
-    (for short answers), a repeated sentence must be judged as one
-    unit against the full expected phrase."""
+    """Whole-phrase fuzzy match via partial_ratio, so hesitation filler ("um",
+    "let me see") around the sentence doesn't tank the score -- it aligns the
+    expected phrase against its best-matching substring of the response instead
+    of comparing the two full strings position-for-position."""
     expected = clean_response(answers[0])
-    return 1 if rapidfuzz.fuzz.ratio(clean_response(response), expected) >= FUZZY_THRESHOLD else 0
+    return 1 if rapidfuzz.fuzz.partial_ratio(clean_response(response), expected) >= FUZZY_THRESHOLD else 0
 
 _ANIMAL_ROOTS = None
 
