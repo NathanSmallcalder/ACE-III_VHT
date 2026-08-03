@@ -14,7 +14,7 @@ initial_state = {
     "sub_question_index": 0,
     "question_score": 0,
     "scores": {domain: 0 for domain in DOMAIN_ORDER},
-    "domain_queue": DOMAIN_ORDER[1:],
+    "domain_queue": [d for d in DOMAIN_ORDER[1:] if d != "Fluency"],  # Fluency is reached via advance_node's mid-Memory detour
     "complete": False,
     "needs_repeat": False,
     "repeat_count": 0,

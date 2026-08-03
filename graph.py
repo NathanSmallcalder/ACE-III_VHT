@@ -478,7 +478,21 @@ def advance_node(state: ACEState) -> dict:
     question_turn_start = len(state["messages"])
     previous_task_signature = (domain, task_modality(question))
 
-    if q_index + 1 < total_questions:
+    if domain == "Memory" and q_index == 1:
+        # I accidently left memory in the json so now i have to detour to fluency before going back to memory for the retrograde questions.
+        result = {
+            "current_domain": "Fluency", "question_index": 0, "sub_question_index": 0, "question_score": 0,
+            "question_log": question_log, "question_turn_start": question_turn_start,
+            "previous_task_signature": previous_task_signature,
+        }
+    elif domain == "Fluency" and q_index + 1 >= total_questions:
+        # End of the detour: 
+        result = {
+            "current_domain": "Memory", "question_index": 2, "sub_question_index": 0, "question_score": 0,
+            "question_log": question_log, "question_turn_start": question_turn_start,
+            "previous_task_signature": previous_task_signature,
+        }
+    elif q_index + 1 < total_questions:
         result = {
             "question_index": q_index + 1, "sub_question_index": 0, "question_score": 0,
             "question_log": question_log, "question_turn_start": question_turn_start,
