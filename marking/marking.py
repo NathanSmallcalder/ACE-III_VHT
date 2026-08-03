@@ -52,15 +52,28 @@ def score_exact(response, answers):
     return 1 if any(clean_response(a) in words for a in answers) else 0
 
 def score_integer(response, answers):
-    """Parsed integer match via sliding window (dot counting)."""
+    """Parsed integer match via sliding window (dot counting). Credits a
+    match only if no other number is said afterwards"""
     response_words = clean_response(response).split()
     expected = [normalise_number(clean_response(a)) for a in answers]
-    for y in expected:
-        for n in range(1, min(3, len(response_words)) + 1):
-            for i in range(len(response_words) - n + 1):
-                if normalise_number(" ".join(response_words[i:i + n])) == y:
-                    return 1
-    return 0
+
+    match_end = -1
+    for n in range(1, min(3, len(response_words)) + 1):
+        for i in range(len(response_words) - n + 1):
+            if normalise_number(" ".join(response_words[i:i + n])) in expected:
+                match_end = max(match_end, i + n)
+    if match_end == -1:
+        return 0
+
+    for n in range(1, min(3, len(response_words) - match_end) + 1):
+        for i in range(match_end, len(response_words) - n + 1):
+            val = normalise_number(" ".join(response_words[i:i + n]))
+            try:
+                int(val)
+                return 0  # a different number was said afterwards
+            except ValueError:
+                pass
+    return 1
 
 def score_serial_sevens(response):
     """Scores each correct subtraction of 7 from the previous number said, starting from 100."""
@@ -74,7 +87,8 @@ def score_serial_sevens(response):
             try:
                 num = int(val)
                 if 0 <= num < 100:
-                    numbers.append(num)
+                    if not numbers or numbers[-1] != num:
+                        numbers.append(num)
                     i += n
                     found = True
                     break
@@ -116,12 +130,30 @@ def _norm(text):
 def _same(a, b):
     return rapidfuzz.fuzz.ratio(a, b) >= FUZZY_THRESHOLD or phonetic_equal(a, b)
 
+def _last_full_name_match_is_final(words, full):
+    """True if one of the full-name answers has a matching window in `words`
+    and nothing but filler follows it -- i.e. it's the last name actually
+    claimed, not one of several names listed before moving on to another
+    guess (e.g. "is it Churchill, Thatcher, or Blair" should not credit
+    Thatcher just because it's mentioned somewhere in the middle)."""
+    targets = [normalise_number(clean_response(a)) for a in full]
+    end = -1
+    for n in range(1, min(MAX_FUZZY_WINDOW, len(words)) + 1):
+        for i in range(len(words) - n + 1):
+            window = normalise_number(" ".join(words[i:i + n]))
+            if any(rapidfuzz.fuzz.ratio(window, t) >= FUZZY_THRESHOLD or phonetic_equal(window, t)
+                   for t in targets):
+                end = max(end, i + n)
+    if end == -1:
+        return False
+    return all(w in _NAME_FILLER_WORDS for w in words[end:])
+
 def score_person_name(response, answers):
     """1 if the response names the person. A bare surname (with or without
     filler/honorifics) counts; a surname preceded by a substantive but wrong
     given name does not."""
     full = [a for a in answers if len(a.split()) > 1]
-    if score_fuzzy(response, full):
+    if full and _last_full_name_match_is_final(_norm(response), full):
         return 1
 
     surnames = [_norm(a)[0] for a in answers if len(a.split()) == 1]
@@ -138,6 +170,8 @@ def score_person_name(response, answers):
         for i, w in enumerate(words):
             if not _same(w, surname):
                 continue
+            if not all(x in _NAME_FILLER_WORDS for x in words[i + 1:]):
+                continue  # more than filler follows -- not the final name said
 
             claimed, j = [], i - 1
             while j >= 0 and words[j] not in _NAME_FILLER_WORDS \
