@@ -419,6 +419,10 @@ def scoring_node(state: ACEState) -> dict:
     if not skip_turn_gate and classify_turn(last_message, asked_text) != "answer" and repeats < max_repeats:
         return {"needs_repeat": True, "repeat_count": repeats + 1}
 
+    uses_score_fuzzy = kind in ("season", "recognition") or (kind is None and (is_multi or match_type == "fuzzy"))
+    if uses_score_fuzzy:
+        last_message = extract_final_answer(last_message, asked_text)
+
     if kind:
         return _HANDLERS[kind][0](state, question, last_message, score_domain, q_index, sub_index)
 
@@ -485,8 +489,28 @@ def advance_node(state: ACEState) -> dict:
             "question_log": question_log, "question_turn_start": question_turn_start,
             "previous_task_signature": previous_task_signature,
         }
+    elif domain == "Memory" and q_index == 5:
+        # Delayed recall/recognition (Memory Q6-7) need real interference
+        # before them, so skip ahead to the next domain now instead of
+        # asking them right after the retrograde questions; we detour back
+        # once Visuospatial (the last domain) finishes.
+        q = state["domain_queue"].copy()
+        next_domain = q.pop(0)
+        result = {
+            "current_domain": next_domain, "question_index": 0, "sub_question_index": 0, "question_score": 0,
+            "domain_queue": q,
+            "question_log": question_log, "question_turn_start": question_turn_start,
+            "previous_task_signature": previous_task_signature,
+        }
+    elif domain == "Visuospatial" and q_index + 1 >= total_questions:
+        # End of that detour: back to Memory for delayed recall/recognition.
+        result = {
+            "current_domain": "Memory", "question_index": 6, "sub_question_index": 0, "question_score": 0,
+            "question_log": question_log, "question_turn_start": question_turn_start,
+            "previous_task_signature": previous_task_signature,
+        }
     elif domain == "Fluency" and q_index + 1 >= total_questions:
-        # End of the detour: 
+        # End of the detour:
         result = {
             "current_domain": "Memory", "question_index": 2, "sub_question_index": 0, "question_score": 0,
             "question_log": question_log, "question_turn_start": question_turn_start,
@@ -592,6 +616,10 @@ def router(state: ACEState) -> str:
     total_questions = len(ACE_DATA[domain]["questions"])
     if q_index + 1 < total_questions:
         return "next_question"
+    elif domain == "Visuospatial":
+        # Always detours back to Memory for delayed recall/recognition, even
+        # though domain_queue is already empty by this point.
+        return "next_domain"
     elif state['domain_queue']:
         return "next_domain"
     else:

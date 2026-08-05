@@ -75,9 +75,33 @@ def score_integer(response, answers):
                 pass
     return 1
 
+_SUBTRACTION_ECHO_WORDS = {"minus", "subtract", "less", "take", "away"}
+
 def score_serial_sevens(response):
-    """Scores each correct subtraction of 7 from the previous number said, starting from 100."""
+    """Scores each correct subtraction of 7 from the previous number said, starting from 100.
+    Strips the patient's restatement of the question itself ("one hundred minus seven", "take
+    away seven") first, so echoing the problem isn't picked up as part of their answer sequence."""
     words = clean_response(response).split()
+
+    stripped = []
+    skip_number = False
+    for w in words:
+        if w == "hundred":
+            if stripped and normalise_number(stripped[-1]).isdigit():
+                stripped.pop()
+            continue
+        if w in _SUBTRACTION_ECHO_WORDS:
+            skip_number = True
+            continue
+        if w == "and":
+            continue
+        if skip_number and normalise_number(w).isdigit():
+            skip_number = False
+            continue
+        skip_number = False
+        stripped.append(w)
+    words = stripped
+
     numbers = []
     i = 0
     while i < len(words):
@@ -112,8 +136,21 @@ def score_fuzzy(response, answers):
         expected = normalise_number(clean_response(answer))
         for n in range(1, min(MAX_FUZZY_WINDOW, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
-                window = normalise_number(" ".join(response_words[i:i + n]))
-                if rapidfuzz.fuzz.partial_ratio(window, expected) >= FUZZY_THRESHOLD or phonetic_equal(window, expected):
+                span = response_words[i:i + n]
+                window = normalise_number(" ".join(span))
+                # Also try the span with no spaces at all, so a single word
+                # broken into syllables by pauses/hyphens (e.g. "ca-ter
+                # pil-lar" for "caterpillar") isn't penalised just because
+                # clean_response turned those internal breaks into word
+                # boundaries. This must be an EXACT match, not another fuzzy
+                # threshold -- a fuzzy check here would also forgive genuinely
+                # missing/altered letters (e.g. "un in tell i ble" is missing
+                # the "gi" from "unintelligible" and should still fail), not
+                # just the artificial space penalty this is meant to undo.
+                window_joined = normalise_number("".join(span))
+                if (rapidfuzz.fuzz.ratio(window, expected) >= FUZZY_THRESHOLD
+                        or window_joined == expected
+                        or phonetic_equal(window, expected)):
                     return 1
     return 0
 
@@ -276,12 +313,25 @@ def scaled_count(count, bands):
             return score
     return 0
 
+# Common P- first names excluded from letter fluency even when they also happen
+# to have some other, usually obscure, WordNet sense (e.g. "peter" is only in
+# WordNet as crude slang, but is overwhelmingly said/heard as the name Peter).
+# Deliberately a small curated list, not a names corpus lookup -- a corpus like
+# nltk.corpus.names is noisy enough to also flag ordinary words (pen, park,
+# page, pearl, prince, porter, patience...) as "names" and wrongly reject them.
+COMMON_NAMES = {
+    "peter", "paul", "patricia", "pamela", "paula", "penny", "penelope",
+    "philip", "phillip", "phoebe", "priscilla", "patrick", "percy", "piper",
+}
+
 def p_word_root(word):
     """Return the dictionary root of `word` if it's a valid common P-word, else None.
     Normalizing to the WordNet root (via morphy) merges perseverations and plurals
     (pay/paid/pays -> pay, pot/pots -> pot) into a single countable word."""
     word = word.lower().strip()
     if not word.startswith("p"):
+        return None
+    if word in COMMON_NAMES:
         return None
     root = wn.morphy(word)
     if root is None:

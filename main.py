@@ -6,15 +6,16 @@ from voice.capture import AudioCapture, FLUENCY_SILENCE_DURATION
 from ui.session_window import SessionWindow
 
 DOMAIN_ORDER = list(ACE_DATA.keys())
+START_DOMAIN = "Memory"   # DOMAIN_ORDER[0]
 
 initial_state = {
     "messages": [],
-    "current_domain": "Memory",   # DOMAIN_ORDER[0],
+    "current_domain": START_DOMAIN,
     "question_index": 0,
     "sub_question_index": 0,
     "question_score": 0,
     "scores": {domain: 0 for domain in DOMAIN_ORDER},
-    "domain_queue": [d for d in DOMAIN_ORDER[1:] if d != "Fluency"],  # Fluency is reached via advance_node's mid-Memory detour
+    "domain_queue": [d for d in DOMAIN_ORDER if d not in (START_DOMAIN, "Fluency")],  # Fluency is reached via advance_node's mid-Memory detour
     "complete": False,
     "needs_repeat": False,
     "repeat_count": 0,
