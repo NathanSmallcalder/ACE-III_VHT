@@ -24,6 +24,7 @@ exact_cases = {
     "not_word_boundary": ("map", ["M"], 0),
     "spam_lands_on_correct_letter": ("A,B,C, wait its definitely M", ["M"], 1),
     "spam_lands_on_wrong_letter": ("A,B,C, wait its definitely D", ["M"], 0),
+    "empty_response": ("", ["M"], 0),
 }
 
 @pytest.mark.parametrize(
@@ -69,7 +70,12 @@ fuzzy_cases = {
     "embedded_in_sentence": ("I think it's the penguin one", ["penguin", "4"], 1),
     "phonetic_match": ("pengwin", ["penguin", "4"], 1),
     "spam_answer": ("is it the crown, the kangaroo, or the penguin", ["crown", "10"], 1),
-    "wrong_correction":("the capital of Kent is definitely Dover.", ["Kent"], 0)
+    "wrong_correction":("the capital of Kent is definitely Dover.", ["Kent"], 0),
+    "repeat_words_stutter_eccentricity":("e-eccen... tri... ci... ty.", ["eccentricity"], 1),
+    "repeat_words_small_stutter":("ca-ter... pil-lar.", ["caterpillar"], 1),
+    "repeat_words_missing_syllable":("un... in... tell... i... ble.", ["unintelligible"], 0),
+    "repeat_words_stutter":("e-e-eccen... tri... city.", ["eccentricity"], 0)
+}
 }
 
 @pytest.mark.parametrize(
@@ -136,7 +142,8 @@ def test_score_person_name(response, answers, expected):
 # score_sentence_repetition: Sentence repetition (Language) -- "All that glitters is not gold"
 sentence_repetition_cases = {
     "test": ("um let me see, all that glitters is not gold", ["All that glitters is not gold"], 1),
-    "spam_answer": ("a stitch in time saves nine, then, all that glitters is not gold", ["All that glitters is not gold"], 1)
+    "spam_answer": ("a stitch in time saves nine, then, all that glitters is not gold", ["All that glitters is not gold"], 1),
+    "completely_different_sentence": ("every dog has its day", ["All that glitters is not gold"], 0),
 }
 
 @pytest.mark.parametrize(
@@ -153,6 +160,8 @@ def test_score_sentence_repetition(response, answers, expected):
 mixed_list_cases = {
     "test": ("Harry lives at 73", ["Harry", "73"], 2),
     "spam_answer": ("Barry 17 Harry 99 73 close", ["Harry", "73"], 2),
+    "plain_wrong_answer": ("I don't know, I can't remember anything", ["Harry", "73"], 0),
+    "numbers_as_words": ("seventy three Orchard Close", ["73", "Orchard"], 2),
 }
 
 @pytest.mark.parametrize(
@@ -178,7 +187,7 @@ serial_sevens_cases = {
     "single_number_only": ("93", 1),
     "no_numbers_said": ("um let me think", 0),
     "empty_response": ("", 0),
-    "spam_answer": ("100 93 93 86 79 72 65", 5),
+    "answer": ("100 93 93 86 79 72 65", 5),
 }
 
 @pytest.mark.parametrize(
@@ -194,6 +203,27 @@ def test_score_serial_sevens(response, expected):
 # score_letter_fluency: Letter fluency, letter P (Fluency) -- open-ended, no fixed answer list in json
 letter_fluency_cases = {
     "test": ("pen pot paper pay", 2),
+    "empty_response": ("", 0),
+    "band_0_one_word": ("pen", 0),
+    "band_1_two_words": ("pen pot", 1),
+    "band_2_four_words": ("pen pot paper park", 2),
+    "band_3_six_words": ("pen pot paper park paint phone", 3),
+    "band_4_eight_words": ("pen pot paper park paint phone plate pencil", 4),
+    "band_5_eleven_words": ("pen pot paper park paint phone plate pencil purse pillow puzzle", 5),
+    "band_6_fourteen_words": ("pen pot paper park paint phone plate pencil purse pillow puzzle pumpkin potato planet", 6),
+    "band_7_eighteen_words": ("pen pot paper park paint phone plate pencil purse pillow puzzle pumpkin potato planet pirate palace pepper piano", 7),
+    "excluded_place_name": ("pen paris", 0),
+    "excluded_person_name_first_name": ("pen peter", 0),
+    # Guards against a broader names-corpus-style fix: these are ordinary
+    # words that happen to double as rare/uncommon names and must still count.
+    "ordinary_words_not_over_excluded": ("pen park page pail", 2),
+    # ACE-III manual's 5 named exclusions, each paired with a second distinct
+    # word so the excluded/collapsed group is provably worth at most 1, not 0.
+    "manual_rule1_repetitions": ("pen pen pen pot", 1),
+    "manual_rule2_perseverations": ("pay paid pays pot", 1),
+    "manual_rule3_intrusions": ("pen cat dog pot", 1),
+    "manual_rule4_proper_names": ("pen peter paris pot", 1),
+    "manual_rule5_plurals": ("pot pots pen", 1),
 }
 
 @pytest.mark.parametrize(

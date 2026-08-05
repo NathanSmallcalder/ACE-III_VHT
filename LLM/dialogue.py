@@ -173,3 +173,34 @@ def classify_turn(last_response: str, question_text: str = "") -> str:
         return matches[-1]
     return "repeat"
 
+
+def extract_final_answer(last_response: str, question_text: str = "") -> str:
+    """Resolves a patient's utterance down to the single value they actually
+    settled on, for questions later matched by fuzzy string comparison
+    (orientation day/date/month/season, recognition multiple-choice,
+    picture-comprehension choices). Handles self-correction (says the wrong
+    one first, then corrects), reasoning asides that mention a nearby but
+    irrelevant value, and brute-force listing of every plausible option.
+    Returns an empty string when no single value was actually committed to."""
+    out = llm_strict.invoke([
+        SystemMessage(content=(
+            "The patient was asked a question with one correct value in mind. Reply with "
+            "ONLY the single value they actually settled on as their answer, nothing else "
+            "(no explanation, no punctuation beyond what's in the value itself, and no "
+            "leading article like 'the'/'a'/'an'). "
+            "If they corrected themselves, use the corrected value, not the discarded one. "
+            "If they mentioned another value only in passing (e.g. explaining or reasoning "
+            "about their answer), ignore it and keep their actually stated answer. "
+            "If they never commit to a single value and instead list out every plausible "
+            "option, reply with nothing.\n\n"
+            "Examples:\n"
+            "Q: Which county are we in?\nPatient: The county is Kent, oh wait, I'm in Essex.\n-> Essex\n"
+            "Q: What day is it?\nPatient: Tuesday, ah well, my family come today.\n-> Tuesday\n"
+            "Q: What day is it?\nPatient: Monday, Tuesday, Wednesday, Thursday, Friday.\n-> \n"
+            "Q: What day is it?\nPatient: It's Tuesday today, as yesterday was Monday.\n-> Tuesday\n"
+            "Q: Was the county Devon, Dorset, or Somerset?\nPatient: Dorset. No, actually, Devon.\n-> Devon\n"
+            "Q: Which picture is associated with the monarchy?\nPatient: It's not the penguin, it's the crown.\n-> crown\n"
+        )),
+        HumanMessage(content=f"Question asked: {question_text}\nPatient said: {last_response}")
+    ])
+    return out.content.strip().strip('"')
