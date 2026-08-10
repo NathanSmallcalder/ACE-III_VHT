@@ -16,7 +16,7 @@ BASE_URL = "http://localhost:1234/v1"
 API_KEY  = "lm-studio"
 MODEL    = "qwen/qwen3-vl-4b"
 
-VLM_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "vlm_responses")
+directory = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "vlm_responses")
 
 MIN_DIMENSION = 1024  #  upscale before sending to the VLM
 
@@ -56,11 +56,9 @@ def describe_images(client: ChatOpenAI, prompt: str, image_paths: list[str]) -> 
     except Exception as e:
         print(f"describe_images failed: {e}")
         return {}
-
     raw = response.content
     if isinstance(raw, list):
         raw = next(block["text"] for block in raw if block.get("type") == "text")
-
     # Strip markdown fences if the model ignores instructions
     raw = re.sub(r"^```json\s*|^```\s*|```$", "", raw.strip(), flags=re.MULTILINE).strip()
 
@@ -73,11 +71,11 @@ def describe_images(client: ChatOpenAI, prompt: str, image_paths: list[str]) -> 
 
 def save_vlm_response(task: str, image_path: str, raw_response: dict, score: dict) -> str:
     """
-    Used to audit the VLMs response. Saves the VLM response and determinstic score to a JSON file in VLM_LOG_DIR.
+    Used to save the VLMs response. Saves the VLM response and determinstic score to a JSON file in VLM_LOG_DIR.
     """
-    os.makedirs(VLM_LOG_DIR, exist_ok=True)
+    os.makedirs(directory, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    out_path = os.path.join(VLM_LOG_DIR, f"{task}_{timestamp}.json")
+    out_path = os.path.join(directory, f"{task}_{timestamp}.json")
     with open(out_path, "w") as f:
         json.dump({
             "task": task,

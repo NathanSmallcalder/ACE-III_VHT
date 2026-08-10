@@ -10,7 +10,7 @@ from LLM.dialogue import *
 from marking.marking import *
 from datetime import datetime
 from data_loader import resolve_dynamic_answers, get_season_transition
-from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question, task_modality
+from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question, task_type
 
 class ACEState(MessagesState):
     current_domain: str
@@ -35,22 +35,24 @@ tts = None
 _audio = None
 _audio_fluency = None
 _gui = None
+_latest_state = None
 
 with open("json/ACE-III.json", "r") as f:
     ACE_DATA = json.load(f)["Domains"]
 
-SEASON_TRUE, SEASON_ADJACENT = get_season_transition(datetime.now())
+season_actual, season_adjacent = get_season_transition(datetime.now())
 
 def configure(session_config, tts_engine, audio, audio_fluency, gui):
-    """Wire up the runtime dependencies the graph's nodes read from module
-    globals, and resolve every question's DYNAMIC answers against
-    session_config. Must be called once before graph.invoke(...)."""
+    """Gets Session variables, and injects them into the scoring pipeline. 
+     Location, Current/Last president, pm and name for user
+    """
     global _session_config, tts, _audio, _audio_fluency, _gui
     _session_config = session_config
     tts = tts_engine
     _audio = audio
     _audio_fluency = audio_fluency
     _gui = gui
+    gui.set_on_close(_save_on_close) # when gui closes save the current run
 
     for _domain in ACE_DATA.values():
         for _question in _domain["questions"]:
@@ -64,10 +66,11 @@ def configure(session_config, tts_engine, audio, audio_fluency, gui):
                 _question["outgoing_leader"] = session_config["previous_us_president"]
             _question["answers"] = resolve_dynamic_answers(_original_answers, session_config)
 
-"""Apply question/domain caps, add to the running score, and clear all
-reprompt/progress state. Every handler and the default scoring path end
-here"""
+
 def _finalize_score(state, question, domain, q_index, score, new_sub) -> dict:
+    """Apply question/domain caps, add to the running score, and clear all
+    reprompt/progress state. Every handler and the default scoring path end
+    here"""
     question_cap = question["score_cap"]
     question_score_so_far = state.get("question_score", 0)
     score = min(score, question_cap - question_score_so_far)
@@ -111,7 +114,7 @@ def _handle_person_name(state, question, response, domain, q_index, sub_index):
     if state.get("reprompt_kind") == "name":
         return _finalize_score(state, question, domain, q_index, score_question(response, question), 0)
     score = score_question(response, question)
-    if score:
+    if score:  
         return _finalize_score(state, question, domain, q_index, score, 0)
 
     # ask for the surname before giving up on the question.
@@ -119,7 +122,7 @@ def _handle_person_name(state, question, response, domain, q_index, sub_index):
         return _reprompt("name")
 
     # Wrong (and not just incomplete) — if there's been a recent change of
-    # leader, probe for the outgoing politician's name as an alternate credit.
+    # leader, probe for the outgoing politician's name as an alternate point.
     if outgoing:
         return _reprompt("leader")
 
@@ -179,8 +182,8 @@ def _handle_season(state, question, response, domain, q_index, sub_index):
     """
     expected_answers = question["answers"]
     if (
-        state.get("reprompt_kind") != "season" and SEASON_ADJACENT
-        and score_fuzzy(response, [SEASON_ADJACENT]) and not score_fuzzy(response, [SEASON_TRUE])
+        state.get("reprompt_kind") != "season" and season_adjacent
+        and score_fuzzy(response, [season_adjacent]) and not score_fuzzy(response, [season_actual])
     ):
         return _reprompt("season")
 
@@ -306,12 +309,18 @@ def _match_kind(question, sub_index):
         return "recognition"
     return None
 
+def _save_on_close():
+    if _latest_state is not None:
+        save_progress(_latest_state)
+
 def conversation_node(state: ACEState) -> dict:
     """
     Speaks the current question and captures the patient's response.
     Handles skip logic, visual/click task routing, and _HANDLERS-driven
     reprompt phrasing.
     """
+    global _latest_state
+    _latest_state = state
     domain = state["current_domain"]
     q_index = state["question_index"]
     sub_index = state.get("sub_question_index", 0)
@@ -328,8 +337,6 @@ def conversation_node(state: ACEState) -> dict:
         next_question = ACE_DATA[domain]["questions"][q_index + 1] if q_index + 1 < total_questions else None
         return run_click_task(state, question, tts, _session_config, next_question, _gui)
 
-    # Show once, on the first presentation of the question — not on every
-    # repeat/reprompt turn, which would otherwise reopen a new viewer window.
     if question.get("image") and not state.get("needs_repeat"):
         _gui.show_stimulus_image(question["image"])
 
@@ -350,7 +357,7 @@ def conversation_node(state: ACEState) -> dict:
         spoken_text = rephrase_question(text)
     else:
         wrapper = resolve_wrapper(
-            state, _session_config["patient"]["name"], domain, task_modality(question), sub_index,
+            state, _session_config["patient"]["name"], domain, task_type(question), sub_index,
         )
         spoken_text = f"{wrapper} {text}".strip() if wrapper else text
 
@@ -376,7 +383,6 @@ def conversation_node(state: ACEState) -> dict:
         return {"needs_repeat": True}
 
     print("Patient:", user_input)
-    _gui.add_message("patient", user_input)
     return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=user_input)]}
 
 
@@ -419,7 +425,7 @@ def scoring_node(state: ACEState) -> dict:
     if not skip_turn_gate and classify_turn(last_message, asked_text) != "answer" and repeats < max_repeats:
         return {"needs_repeat": True, "repeat_count": repeats + 1}
 
-    uses_score_fuzzy = kind in ("season", "recognition") or (kind is None and (is_multi or match_type == "fuzzy"))
+    uses_score_fuzzy = kind in ("season", "recognition", "person_name") or (kind is None and (is_multi or match_type in ("fuzzy", "exact")))
     if uses_score_fuzzy:
         last_message = extract_final_answer(last_message, asked_text)
 
@@ -480,19 +486,18 @@ def advance_node(state: ACEState) -> dict:
     total_questions = len(ACE_DATA[domain]["questions"])
     question_log = state.get("question_log", []) + [_question_record(state)]
     question_turn_start = len(state["messages"])
-    previous_task_signature = (domain, task_modality(question))
+    previous_task_signature = (domain, task_type(question))
 
     if domain == "Memory" and q_index == 1:
-        # I accidently left memory in the json so now i have to detour to fluency before going back to memory for the retrograde questions.
+        # left memory in the json so now i have to detour to fluency before going back to memory for the retrograde questions.
         result = {
             "current_domain": "Fluency", "question_index": 0, "sub_question_index": 0, "question_score": 0,
             "question_log": question_log, "question_turn_start": question_turn_start,
             "previous_task_signature": previous_task_signature,
         }
     elif domain == "Memory" and q_index == 5:
-        # Delayed recall/recognition (Memory Q6-7) need real interference
-        # before them, so skip ahead to the next domain now instead of
-        # asking them right after the retrograde questions; we detour back
+        # Delayed recall/recognition (Memory Q6-7)
+        # asking them right after the retrograde questions; detour back
         # once Visuospatial (the last domain) finishes.
         q = state["domain_queue"].copy()
         next_domain = q.pop(0)
@@ -549,7 +554,7 @@ def _interpret_ace_total(total: int) -> str:
     if total >= 88:
         return "At or above 88 — not indicative of dementia by either ACE-III cutoff."
     if total >= 82:
-        return "Below 88 but at/above 82 — flagged by the more sensitive (88) cutoff only."
+        return "Below 88 but at/above 82."
     return "Below both 88 and 82 — flagged by both ACE-III cutoffs."
 
 
@@ -592,6 +597,8 @@ def report_node(state: ACEState) -> dict:
     progress_path = os.path.join(PROGRESS_DIR, f"progress_{safe_name}.json")
     if os.path.exists(progress_path):
         os.remove(progress_path)
+    global _latest_state
+    _latest_state = None
 
     _gui.add_message("assessor", "Thank you — that concludes the assessment.")
     time.sleep(3)
@@ -627,11 +634,9 @@ def router(state: ACEState) -> str:
 
 PROGRESS_DIR = os.path.join(RESULTS_DIR, "progress")
 
-
 def save_progress(state: ACEState) -> str:
     """Writes the full in-progress state to disk so an interrupted session
-    can be resumed later. Overwrites the same file each call — this is a
-    checkpoint of the latest position, not a history of every save."""
+    can be resumed later. Overwrites the same file each call"""
     os.makedirs(PROGRESS_DIR, exist_ok=True)
     patient_name = _session_config.get("patient", {}).get("name", "unknown")
     safe_name = "".join(c if c.isalnum() else "_" for c in str(patient_name))

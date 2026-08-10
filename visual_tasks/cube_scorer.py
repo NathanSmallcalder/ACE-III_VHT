@@ -20,9 +20,7 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
 
 {
   "edges_present": "<integer 0-12 — how many of the cube's 12 canonical edges (4 on the front face, 4 on the back face, 4 connecting the two) are represented by a line in the drawing, ignoring any extra stray marks>",
-  "general_cube_shape": "<yes/no — does the drawing read as a recognisable 3D cube overall, regardless of exact style or proportions>",
-
-  "notes": "<one short sentence flagging anything unusual not captured above, or none>"
+  "general_cube_shape": "<yes/no — Is a general cube shape maintained, regardless of exact style or proportions>",
 }
 """
 
@@ -45,11 +43,10 @@ def score_cube(data: dict) -> dict:
     edges_present = to_int(get("edges_present"))
     cube_shape = get("general_cube_shape") == "yes"
 
-    if edges_present is not None and edges_present >= 12:
-        # "12 lines to score 2 points, even if the proportions are not perfect"
+    if edges_present is not None and edges_present == 12:
+
         total = 2
     elif cube_shape:
-        # "fewer than 12 lines but a general cube shape is maintained"
         total = 1
     else:
         total = 0

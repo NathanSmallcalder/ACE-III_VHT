@@ -10,7 +10,7 @@ load_dotenv()
 # do not look like circles."
 INFINITY_PROMPT = """You are analysing a hand-drawn attempt at copying an interlocking infinity-loop diagram, for clinical scoring purposes.
 
-The target diagram (not shown) is two separate figure-eight (infinity symbol, "∞") shapes, placed side by side
+The target diagram is two separate figure-eight (infinity symbol, "∞") shapes, placed side by side
 so they overlap in the middle. Each figure-eight shape on its own has two loops that meet at a central waist
 where the line crosses itself to a sharp point — it must look like an infinity symbol, not like two circles
 or ovals merely touching or fused together.
@@ -19,14 +19,14 @@ Describe only what is visible in the drawing. Where a field allows "unclear", us
 Respond with a single JSON object and nothing else — no explanation.
 
 {
-  "figure_eight_count": "<integer, or unclear — how many distinct figure-eight/infinity shapes are drawn (each made of two loops crossing at its own central waist)>",
-  "each_figure_eight_has_sharp_crossing": "<yes/no/unclear — does every individual figure-eight shape come to a clear point/cross at its own waist? Answer no if a figure-eight's two loops are instead just touching, fused, or overlapping without a defined pinch point — i.e. it reads as two circles/ovals rather than an infinity symbol.>",
+  "figure_eight_count": "<integer, or unclear — how many distinct figure-eight/infinity shapes are drawn>",
+  "are_circles": "<yes/no/unclear — is the drawing one stroke or is it two circles overlapping?>",
   "figure_eights_overlap": "<yes/no/unclear — do the two figure-eight shapes visibly overlap each other in the middle>",
 
   "notes": "<one short sentence flagging anything unusual not captured above, or none>"
 }
 """
-
+#Both infinity loops must come to a  point/cross and do not look like circles
 llm = build_client(0.0, 20000)
 
 
@@ -47,7 +47,7 @@ def score_infinity(data: dict) -> dict:
 
     checks = [
         to_int(get("figure_eight_count")) == 2,
-        get("each_figure_eight_has_sharp_crossing") == "yes",
+        get("are_circles") == "no",
         get("figure_eights_overlap") == "yes",
     ]
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     print("\n── Parsed Fields ────────────────────────────────────────────")
     for field in [
-        "figure_eight_count", "each_figure_eight_has_sharp_crossing",
+        "figure_eight_count", "are_circles",
         "figure_eights_overlap", "notes",
     ]:
         print(f"  {field}: {str(data.get(field, '')).strip().lower()}")

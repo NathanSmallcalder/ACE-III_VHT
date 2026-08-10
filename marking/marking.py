@@ -26,7 +26,8 @@ CATEGORY_FLUENCY_BANDS = [
     (22, float("inf"), 7)
 ]
 
-FUZZY_THRESHOLD = 85
+FUZZY_THRESHOLD = 88
+
 # Wide enough to cover a fully spoken-out number ("two thousand and twenty
 # six" = 5 words) without exploding the window scan's cost — response turns
 # here are short (single answers), so a few extra window sizes is negligible.
@@ -38,6 +39,10 @@ _ANIMALS = None
 Index a word by how it sounds
 """
 def phonetic_equal(a, b):
+    if len(a) < 3 or len(b) < 3:
+        return False
+    if rapidfuzz.fuzz.ratio(a, b) < 80: # bell vs ball case or other simular words
+        return False
     pa, sa = doublemetaphone(a)
     pb, sb = doublemetaphone(b)
     if not pa or not pb:
@@ -77,17 +82,32 @@ def score_integer(response, answers):
 
 _SUBTRACTION_ECHO_WORDS = {"minus", "subtract", "less", "take", "away"}
 
+def _strip_syllable_stutters(response):
+    """Drop a truncated onset fused directly onto the next word by a hyphen
+    (e.g. "nine-ninety-three", "sev-seventy-nine") before any other parsing --
+    if the first part is a strict prefix of the second, it's an abandoned
+    attempt at that word, not a separate token."""
+    def replace(m):
+        first, second = m.group(1), m.group(2)
+        if first.lower() != second.lower() and second.lower().startswith(first.lower()):
+            return second
+        return m.group(0)
+    return re.compile(r"\b(\w+)-(\w+)").sub(replace, response)
+
 def score_serial_sevens(response):
     """Scores each correct subtraction of 7 from the previous number said, starting from 100.
     Strips the patient's restatement of the question itself ("one hundred minus seven", "take
     away seven") first, so echoing the problem isn't picked up as part of their answer sequence."""
-    words = clean_response(response).split()
+    words = clean_response(_strip_syllable_stutters(response)).split()
 
     stripped = []
     skip_number = False
     for w in words:
         if w == "hundred":
-            if stripped and normalise_number(stripped[-1]).isdigit():
+            # Pop a stutter on the leading digit too (e.g. "one... one hundred"),
+            # not just the single word directly before "hundred".
+            last_val = normalise_number(stripped[-1]) if stripped else None
+            while stripped and last_val is not None and last_val.isdigit() and normalise_number(stripped[-1]) == last_val:
                 stripped.pop()
             continue
         if w in _SUBTRACTION_ECHO_WORDS:
@@ -102,17 +122,17 @@ def score_serial_sevens(response):
         stripped.append(w)
     words = stripped
 
-    numbers = []
+    spans = []
     i = 0
     while i < len(words):
         found = False
         for n in range(min(2, len(words) - i), 0, -1):
-            val = normalise_number(" ".join(words[i:i + n]))
+            tokens = words[i:i + n]
+            val = normalise_number(" ".join(tokens))
             try:
                 num = int(val)
                 if 0 <= num < 100:
-                    if not numbers or numbers[-1] != num:
-                        numbers.append(num)
+                    spans.append((tokens, num))
                     i += n
                     found = True
                     break
@@ -120,6 +140,19 @@ def score_serial_sevens(response):
                 pass
         if not found:
             i += 1
+    numbers = []
+    for idx, (tokens, num) in enumerate(spans):
+        if idx + 1 < len(spans):
+            next_tokens = spans[idx + 1][0]
+            is_word_prefix = len(tokens) < len(next_tokens) and next_tokens[:len(tokens)] == tokens
+            is_syllable_stutter = (
+                len(tokens) == 1 and tokens[0] != next_tokens[0]
+                and next_tokens[0].startswith(tokens[0])
+            )
+            if is_word_prefix or is_syllable_stutter:
+                continue
+        if not numbers or numbers[-1] != num:
+            numbers.append(num)
 
     score = 0
     prev = 100
@@ -138,15 +171,6 @@ def score_fuzzy(response, answers):
             for i in range(len(response_words) - n + 1):
                 span = response_words[i:i + n]
                 window = normalise_number(" ".join(span))
-                # Also try the span with no spaces at all, so a single word
-                # broken into syllables by pauses/hyphens (e.g. "ca-ter
-                # pil-lar" for "caterpillar") isn't penalised just because
-                # clean_response turned those internal breaks into word
-                # boundaries. This must be an EXACT match, not another fuzzy
-                # threshold -- a fuzzy check here would also forgive genuinely
-                # missing/altered letters (e.g. "un in tell i ble" is missing
-                # the "gi" from "unintelligible" and should still fail), not
-                # just the artificial space penalty this is meant to undo.
                 window_joined = normalise_number("".join(span))
                 if (rapidfuzz.fuzz.ratio(window, expected) >= FUZZY_THRESHOLD
                         or window_joined == expected
@@ -155,11 +179,10 @@ def score_fuzzy(response, answers):
     return 0
 
 _NAME_FILLER_WORDS = {
-    "his", "her", "its", "it's", "name", "is", "was", "the", "a", "an",
-    "um", "uh", "i", "think", "that's", "that", "mr", "mrs", "ms", "dr",
-    "president", "minister", "prime",
+    "his", "her", "him", "its", "it's", "name", "is", "was", "the", "a", "an",
+    "um", "uh", "erm", "i", "think", "that's", "that", "mr", "mrs", "ms", "dr",
+    "president", "minister", "prime", "hold", "on", "yes", "sure", "right", "okay", "ok",
 }
-_CORRECTION_MARKERS = {"no", "not", "sorry", "actually", "wait", "mean", "rather"}
 
 def _norm(text):
     return normalise_number(clean_response(text)).split()
@@ -211,8 +234,7 @@ def score_person_name(response, answers):
                 continue  # more than filler follows -- not the final name said
 
             claimed, j = [], i - 1
-            while j >= 0 and words[j] not in _NAME_FILLER_WORDS \
-                         and words[j] not in _CORRECTION_MARKERS:
+            while j >= 0 and words[j] not in _NAME_FILLER_WORDS:
                 claimed.insert(0, words[j])
                 j -= 1
 
@@ -225,9 +247,11 @@ def score_person_name(response, answers):
     return 0
 
 def score_fuzzy_list(response, answers):
-    """Each answer in list scored separately via sliding window."""
+    """Each answer in list scored separately via sliding window. Response words
+    already used by an earlier match can't be reused by a later one."""
     score = 0
     matched = set()
+    used_words = set()
     response_words = clean_response(response).split()
     expected = [normalise_number(clean_response(a)) for a in answers]
 
@@ -236,9 +260,12 @@ def score_fuzzy_list(response, answers):
             continue
         for n in range(1, min(MAX_FUZZY_WINDOW, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
+                if used_words & set(range(i, i + n)):
+                    continue
                 window = normalise_number(" ".join(response_words[i:i + n]))
                 if rapidfuzz.fuzz.ratio(window, y) >= FUZZY_THRESHOLD or phonetic_equal(window, y):
                     matched.add(y)
+                    used_words.update(range(i, i + n))
                     score += 1
                     break
             else:
@@ -253,12 +280,11 @@ def score_all_correct_list(response, answers):
     return 1 if score_fuzzy_list(response, answers) == len(answers) else 0
 
 def score_sentence_repetition(response, answers):
-    """Whole-phrase fuzzy match via partial_ratio, so hesitation filler ("um",
-    "let me see") around the sentence doesn't tank the score -- it aligns the
-    expected phrase against its best-matching substring of the response instead
-    of comparing the two full strings position-for-position."""
-    expected = clean_response(answers[0])
-    return 1 if rapidfuzz.fuzz.partial_ratio(clean_response(response), expected) >= FUZZY_THRESHOLD else 0
+    """Every word of the target sentence must be found (fuzzy/phonetic) somewhere
+    in the response -- so hesitation filler ("um", "let me see") around the
+    sentence doesn't tank the score, but a dropped or wrong word does."""
+    words = clean_response(answers[0]).split()
+    return score_all_correct_list(response, words)
 
 _ANIMAL_ROOTS = None
 
@@ -314,11 +340,7 @@ def scaled_count(count, bands):
     return 0
 
 # Common P- first names excluded from letter fluency even when they also happen
-# to have some other, usually obscure, WordNet sense (e.g. "peter" is only in
-# WordNet as crude slang, but is overwhelmingly said/heard as the name Peter).
-# Deliberately a small curated list, not a names corpus lookup -- a corpus like
-# nltk.corpus.names is noisy enough to also flag ordinary words (pen, park,
-# page, pearl, prince, porter, patience...) as "names" and wrongly reject them.
+
 COMMON_NAMES = {
     "peter", "paul", "patricia", "pamela", "paula", "penny", "penelope",
     "philip", "phillip", "phoebe", "priscilla", "patrick", "percy", "piper",
@@ -329,7 +351,7 @@ def p_word_root(word):
     Normalizing to the WordNet root (via morphy) merges perseverations and plurals
     (pay/paid/pays -> pay, pot/pots -> pot) into a single countable word."""
     word = word.lower().strip()
-    if not word.startswith("p"):
+    if len(word) < 2 or not word.startswith("p"):
         return None
     if word in COMMON_NAMES:
         return None

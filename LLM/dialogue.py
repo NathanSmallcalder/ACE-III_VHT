@@ -48,11 +48,15 @@ def transition() -> str:
             "something a little different, WITHOUT saying what it is, WITHOUT "
             "naming any clinical domain or task (never say memory, attention, "
             "language, drawing, clock, etc.), and without asking a question. "
-            "Your reply is always a statement, never ends with '?'. Do not use quotes.\n\n"
+            "Your reply is always a statement, never ends with '?'. Do not use quotes. "
+            "Vary your wording each time -- do not default to the same stock phrase, "
+            "and avoid the cliche 'shift gears'.\n\n"
             "Examples:\n"
             "-> Okay, now we'll try something a little different.\n"
             "-> Let's move on to something else now.\n"
             "-> Alright, let's try a different kind of task.\n"
+            "-> Right, on to the next part.\n"
+            "-> Good, let's carry on with something new.\n"
         ))
     ])
     return result.content.strip().strip('"')
@@ -127,6 +131,26 @@ def is_finished_drawing(response: str) -> bool:
     return out.content.strip().lower().startswith("yes")
 
 
+def check_in() -> str:
+    """Short spoken check-in during a drawing task, asking whether the patient
+    is finished and ready to show their work."""
+    result = llm_warm.invoke([
+        SystemMessage(content=(
+            "You are a warm clinical assessor. The patient is in the middle of a drawing "
+            "task and has not been asked a specific question. Reply with a short, natural "
+            "spoken check-in (roughly 3-8 words) asking whether they're finished and ready "
+            "to show their drawing. Do not name the task or describe what they're drawing. "
+            "Do not use quotes. Vary your wording each time -- do not default to the same "
+            "stock phrase, especially if they were just checked in on.\n\n"
+            "Examples:\n"
+            "-> Are you ready to show me?\n"
+            "-> Tell me when you're done.\n"
+            "-> How are you getting on?\n"
+            "-> Let me know when you're finished.\n"
+        ))
+    ])
+    return result.content.strip().strip('"')
+
 # Patient has given an Answer
 # Patient Needs a Repeat
 # Patient is Off Topic
@@ -172,7 +196,6 @@ def classify_turn(last_response: str, question_text: str = "") -> str:
     if matches:
         return matches[-1]
     return "repeat"
-
 
 def extract_final_answer(last_response: str, question_text: str = "") -> str:
     """Resolves a patient's utterance down to the single value they actually

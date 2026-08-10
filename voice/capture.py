@@ -3,9 +3,9 @@ import sounddevice as sd
 from faster_whisper import WhisperModel
 
 SILENCE_THRESHOLD = 0.02
-SILENCE_DURATION = 1.5
+SILENCE_DURATION = 2
 MAX_RESPONSE_DURATION = 60
-FLUENCY_SILENCE_DURATION = 10
+FLUENCY_SILENCE_DURATION = 15
 
 class AudioCapture:
     def __init__(self, model_size="large", silence_timeout=SILENCE_DURATION, model=None):
@@ -19,11 +19,7 @@ class AudioCapture:
             self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
     def capture_response(self, on_tick=None, question_key=None) -> str:
-        """`on_tick`, if given, is called once per audio chunk (~every
-        AUDIO_CHUNK samples) — main-thread only, e.g. to keep a Tk window's
-        event loop serviced during a long silent wait. `question_key` is
-        unused here (real hardware just listens); replay/testing stand-ins
-        use it to tell a retry of the same question apart from a new one."""
+        """"""
         print("[Audio] Listening for response...")
 
         recording_buffer = []
@@ -33,7 +29,7 @@ class AudioCapture:
 
         with sd.InputStream(samplerate=self.sample_rate, channels=1, dtype='float32') as stream:
             while True:
-                chunk, overflowed = stream.read(1024)
+                chunk = stream.read(1024)
                 recording_buffer.append(chunk)
                 if on_tick is not None:
                     on_tick()

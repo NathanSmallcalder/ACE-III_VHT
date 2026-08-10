@@ -11,7 +11,7 @@ NUM_FRAMES = 8
 FRAMES_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "frames", "pen_on_paper")
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
-PEN_PAPER_PROMPT = """You are watching frames from a cognitive assessment, in chronological order.
+PEN_PAPER_PROMPT = """You are watching frames, in chronological order.
 A pencil and a blank piece of paper are on a table. The patient was asked, in order, to:
   1. Place the paper on top of the pencil.
   2. Pick up the pencil but not the paper.
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     print("frames written:", len(frames))
 
     data = _describe_pen_paper(frames)
-    print("\n── Parsed Fields ────────────────────────────────────────────")
+    print("\n── Parsed Fields")
     for field in [
         "paper_placed_on_pencil", "pencil_lifted_without_paper",
         "pencil_lifted_after_touching_paper", "notes",
@@ -118,5 +118,5 @@ if __name__ == "__main__":
         print(f"  {field}: {str(data.get(field, '')).strip().lower()}")
 
     scores = score_pen_paper(data)
-    print("\n── ACE-III Pencil/Paper Score ───────────────────────────────")
+    print("\n── ACE-III Pencil/Paper Score ")
     print(f"  Total: {scores['total']} / 3")
