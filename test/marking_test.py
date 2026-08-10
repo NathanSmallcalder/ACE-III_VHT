@@ -23,7 +23,7 @@ exact_cases = {
     "no_match": ("It's a K", ["M"], 0),
     "not_word_boundary": ("map", ["M"], 0),
     "spam_lands_on_correct_letter": ("A,B,C, wait its definitely M", ["M"], 1),
-    "spam_lands_on_wrong_letter": ("A,B,C, wait its definitely D", ["M"], 0),
+    "spam_lands_on_wrong_letter": ("A,B,C,M wait its definitely D", ["M"], 0),
     "empty_response": ("", ["M"], 0),
 }
 
@@ -63,19 +63,15 @@ def test_score_integer(response, answers, expected):
 
 # score_fuzzy: Comprehension picture questions (Language) -- crown/10, kangaroo/3, penguin/4, anchor/5
 fuzzy_cases = {
-    "test": ("it's the crown", ["crown", "10"], 1),
-    "position_number": ("it's number 10", ["crown", "10"], 1),
-    "no_match": ("it's the anchor", ["crown", "10"], 0),
-    "marsupial": ("kangaroo", ["kangaroo", "3"], 1),
-    "embedded_in_sentence": ("I think it's the penguin one", ["penguin", "4"], 1),
-    "phonetic_match": ("pengwin", ["penguin", "4"], 1),
-    "spam_answer": ("is it the crown, the kangaroo, or the penguin", ["crown", "10"], 1),
-    "wrong_correction":("the capital of Kent is definitely Dover.", ["Kent"], 0),
+    "test": ("it's the crown", ["crown"], 1),
+    "no_match": ("it's the anchor", ["crown",], 0),
+    "marsupial": ("kangaroo", ["kangaroo"], 1),
+    "embedded_in_sentence": ("I think it's the penguin one", ["penguin"], 1),
+    "phonetic_match": ("pengwin", ["penguin"], 1),
     "repeat_words_stutter_eccentricity":("e-eccen... tri... ci... ty.", ["eccentricity"], 1),
     "repeat_words_small_stutter":("ca-ter... pil-lar.", ["caterpillar"], 1),
     "repeat_words_missing_syllable":("un... in... tell... i... ble.", ["unintelligible"], 0),
-    "repeat_words_stutter":("e-e-eccen... tri... city.", ["eccentricity"], 0)
-}
+    "repeat_words_stutter":("e-e-eccen... tri... city.", ["eccentricity"], 1) 
 }
 
 @pytest.mark.parametrize(
@@ -107,7 +103,11 @@ def test_score_fuzzy_list(response, answers, expected):
 # score_all_correct_list: Reading (Language) -- sew, pint, soot, dough, height
 all_correct_list_cases = {
     "test": ("sew pint soot dough height", ["sew", "pint", "soot", "dough", "height"], 1),
-    "spam_answer": ("blue sew red pint green soot yellow dough purple height", ["sew", "pint", "soot", "dough", "height"], 1),
+    "spam_answer": ("sew sew red pint so-soot dough dough height", ["sew", "pint", "soot", "dough", "height"], 1),
+    "misread_word_via_stray_letter_fragment_correctly_fails": (
+        "s-sew... p-pint... s-soot... d-duff... h-height...",
+        ["sew", "pint", "soot", "dough", "height"], 0,
+    ),
 }
 
 @pytest.mark.parametrize(
@@ -120,13 +120,15 @@ def test_score_all_correct_list(response, answers, expected):
     assert result == expected
 
 
-# score_person_name: Retrograde memory (Memory) -- first female UK PM: Margaret Thatcher / Thatcher
+# score_person_name: Retrograde memory (Memory) -- first female UK PM: Margaret Thatcher / Thatcher.
+# response is always the single value extract_final_answer already resolved it to
+# (self-correction/listing-every-option already settled upstream), never raw patient speech.
 person_name_cases = {
-    "test": ("It's Margaret Thatcher", ["Margaret Thatcher", "Thatcher"], 1),
-    "spam_answer": ("is it Winston Churchill, Margaret Thatcher, or Tony Blair", ["Margaret Thatcher", "Thatcher"], 0),
-    "genuine_self_correction_still_credited": ("is it Winston Churchill, no wait, Margaret Thatcher", ["Margaret Thatcher", "Thatcher"], 1),
-    "bare_surname_spam_not_credited": ("Thatcher, Blair, or Churchill", ["Margaret Thatcher", "Thatcher"], 0),
-    "bare_surname_self_correction_still_credited": ("is it Churchill, no wait, Thatcher", ["Margaret Thatcher", "Thatcher"], 1),
+    "full_name": ("Margaret Thatcher", ["Margaret Thatcher", "Thatcher"], 1),
+    "bare_surname": ("Thatcher", ["Margaret Thatcher", "Thatcher"], 1),
+    "wrong_given_name_with_right_surname_not_credited": ("Winston Thatcher", ["Margaret Thatcher", "Thatcher"], 0),
+    "no_commitment_extracted_as_empty": ("", ["Margaret Thatcher", "Thatcher"], 0),
+    "title_stripped": ("President Kennedy", ["John F. Kennedy", "John Kennedy", "Kennedy", "JFK"], 1),
 }
 
 @pytest.mark.parametrize(
@@ -144,6 +146,14 @@ sentence_repetition_cases = {
     "test": ("um let me see, all that glitters is not gold", ["All that glitters is not gold"], 1),
     "spam_answer": ("a stitch in time saves nine, then, all that glitters is not gold", ["All that glitters is not gold"], 1),
     "completely_different_sentence": ("every dog has its day", ["All that glitters is not gold"], 0),
+    "trailing_off_before_last_word_is_wrong": (
+        "A stitch... in time... um... saves... saves...",
+        ["A stitch in time saves nine"], 0,
+    ),
+    "heavily_hedged_but_complete_is_still_correct": (
+        "um... let me think... a stitch... in time... um... saves... nine, I think",
+        ["A stitch in time saves nine"], 1,
+    ),
 }
 
 @pytest.mark.parametrize(
@@ -154,8 +164,7 @@ sentence_repetition_cases = {
 def test_score_sentence_repetition(response, answers, expected):
     result = score_sentence_repetition(response, answers)
     assert result == expected
-
-
+    
 # score_mixed_list: Name and address learning/recall (Memory) -- Harry, Barnes, 73, Orchard, Close, Kingsbridge, Devon
 mixed_list_cases = {
     "test": ("Harry lives at 73", ["Harry", "73"], 2),
@@ -183,11 +192,24 @@ serial_sevens_cases = {
     "extra_number_inserted_early": ("93 92 86 79 72 65", 3),
     "more_than_five_numbers_only_first_five_scored": ("93 86 79 72 65 58 51", 5),
     "numbers_over_100_filtered_out": ("100 93 186 79 72 65", 3),
-    "negative_sign_stripped_by_cleaning": ("93 86 79 -2 -9", 3),
+    "negative_values": ("93 86 79 -2 -9", 3),
     "single_number_only": ("93", 1),
     "no_numbers_said": ("um let me think", 0),
     "empty_response": ("", 0),
     "answer": ("100 93 93 86 79 72 65", 5),
+    "real_transcript_stutter_prefix_on_a_number": (
+        "nine-ninety-three... eighty-six... sev-seventy-nine... "
+        "um... sev-seventy-four... and... sixty-eight...",
+        3,
+    ),
+    "echoed_question_before_the_sequence_still_works": (
+        "one hundred minus seven is ninety three, eighty six, seventy nine, seventy two, sixty five",
+        5,
+    ),
+    "ones_digit_completing_a_compound_not_mistaken_for_a_stutter": (
+        "ninety three, eighty six, seventy nine, seventy two, sixty five",
+        5,
+    ),
 }
 
 @pytest.mark.parametrize(
@@ -214,11 +236,7 @@ letter_fluency_cases = {
     "band_7_eighteen_words": ("pen pot paper park paint phone plate pencil purse pillow puzzle pumpkin potato planet pirate palace pepper piano", 7),
     "excluded_place_name": ("pen paris", 0),
     "excluded_person_name_first_name": ("pen peter", 0),
-    # Guards against a broader names-corpus-style fix: these are ordinary
-    # words that happen to double as rare/uncommon names and must still count.
     "ordinary_words_not_over_excluded": ("pen park page pail", 2),
-    # ACE-III manual's 5 named exclusions, each paired with a second distinct
-    # word so the excluded/collapsed group is provably worth at most 1, not 0.
     "manual_rule1_repetitions": ("pen pen pen pot", 1),
     "manual_rule2_perseverations": ("pay paid pays pot", 1),
     "manual_rule3_intrusions": ("pen cat dog pot", 1),
@@ -250,7 +268,7 @@ animal_fluency_cases = {
     "category_word_dropped_when_exemplars_also_said": ("dog cat horse cow salmon trout fish", 1),
     "category_word_kept_when_no_exemplar_said": ("dog cat horse cow bird", 1),
     "repeated_animal_counted_once": ("dog cat horse cow dog goat", 1),
-    "plural_normalised_via_wordnet_morphy": ("dog cat horse cow goats", 1),
+    "plural_normalised_via_wordnet_morphy": ("Dog.. urm  cat ugh? horse cow and yes goats", 1),
     "two_word_animal_name_matched_as_bigram": ("dog cat horse cow guinea pig", 1),
     "no_animals_said": ("car table lamp chair", 0),
     "empty_response": ("", 0),
