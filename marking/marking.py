@@ -3,6 +3,13 @@ import re
 from nltk.corpus import wordnet as wn
 import rapidfuzz
 from marking.preprocessing import *
+from marking.preprocessing import number_words
+from visual_tasks.clock_scorer import score_clock_image
+from visual_tasks.cube_scorer import score_cube_image
+from visual_tasks.infinity_scorer import score_infinity_image
+from visual_tasks.pen_paper_scorer import score_pen_paper_video
+from visual_tasks.writing import score_writing_image
+
 
 LETTER_FLUENCY_BANDS = [
     (0, 1, 0),
@@ -26,33 +33,32 @@ CATEGORY_FLUENCY_BANDS = [
     (22, float("inf"), 7)
 ]
 
-FUZZY_THRESHOLD = 88
+fuzzy_threshold = 82
+fuzzy_window = 6 # Longest possible awnser someone could give is 6 words long "a stich in time saves nine" or a spelled out year "two thousand and twenty six"
 
-# Wide enough to cover a fully spoken-out number ("two thousand and twenty
-# six" = 5 words) without exploding the window scan's cost — response turns
-# here are short (single answers), so a few extra window sizes is negligible.
-MAX_FUZZY_WINDOW = 6
-
-_ANIMALS = None
-
-"""
-Index a word by how it sounds
-"""
 def phonetic_equal(a, b):
+    # Very short words produce noisy phonetic codes
     if len(a) < 3 or len(b) < 3:
         return False
-    if rapidfuzz.fuzz.ratio(a, b) < 80: # bell vs ball case or other simular words
+    # Filters out phonetically similar but distinct words
+    # Prevents false matches like "bell" vs "ball" (if fuzzy ratio < 80)
+    if rapidfuzz.fuzz.ratio(a, b) < 80:
         return False
+    # Compute Double Metaphone codes (returns primary and secondary phonetic representations)
     pa, sa = doublemetaphone(a)
     pb, sb = doublemetaphone(b)
+    # If either string produces no valid phonetic encoding, fail early
     if not pa or not pb:
         return False
+    # Collect non-empty primary (p) and secondary (s) phonetic keys for both words
     codes_a = {c for c in (pa, sa) if c}
     codes_b = {c for c in (pb, sb) if c}
+    # Match if there is ANY overlap between the phonetic keys of word A and word B
     return bool(codes_a & codes_b)
 
 def score_exact(response, answers):
-    """Single-character exact match (fragmented letters). Checks if the expected letter appears as a word in the response."""
+    """Single-character exact match (fragmented letters).
+      Checks if the expected letter appears as a word in the response."""
     words = clean_response(response).split()
     return 1 if any(clean_response(a) in words for a in answers) else 0
 
@@ -62,14 +68,17 @@ def score_integer(response, answers):
     response_words = clean_response(response).split()
     expected = [normalise_number(clean_response(a)) for a in answers]
 
-    match_end = -1
+    match_end = -1  # Tracks the ending index of the LAST valid match found
+    # Locate the furthest matching expected number (window size 1 to 3 words)
     for n in range(1, min(3, len(response_words)) + 1):
         for i in range(len(response_words) - n + 1):
             if normalise_number(" ".join(response_words[i:i + n])) in expected:
                 match_end = max(match_end, i + n)
+    # If none of the expected numbers were found anywhere in the response
     if match_end == -1:
         return 0
-
+    # Check for trailing numbers spoken AFTER the last valid match
+    # (e.g. "it was 5 no wait 6" -> match_end is after '5', but '6' follows)
     for n in range(1, min(3, len(response_words) - match_end) + 1):
         for i in range(match_end, len(response_words) - n + 1):
             val = normalise_number(" ".join(response_words[i:i + n]))
@@ -80,80 +89,58 @@ def score_integer(response, answers):
                 pass
     return 1
 
-_SUBTRACTION_ECHO_WORDS = {"minus", "subtract", "less", "take", "away"}
+math_words = {"minus", "subtract","less","take","away"}
 
-def _strip_syllable_stutters(response):
-    """Drop a truncated onset fused directly onto the next word by a hyphen
-    (e.g. "nine-ninety-three", "sev-seventy-nine") before any other parsing --
-    if the first part is a strict prefix of the second, it's an abandoned
-    attempt at that word, not a separate token."""
-    def replace(m):
-        first, second = m.group(1), m.group(2)
-        if first.lower() != second.lower() and second.lower().startswith(first.lower()):
-            return second
-        return m.group(0)
-    return re.compile(r"\b(\w+)-(\w+)").sub(replace, response)
+def serial_sevens_clean(response):
+    if isinstance(response,list):
+        text = " ".join(map(str,response))
+    else:
+        text = str(response)
+    text = text.lower()
+    text = re.sub(r'\b(\w+)-\1', r'\1', text)
+    text = text.replace("-", " ")
+    text = re.sub(rf'[^,;.\n]*\b(?:{"|".join(math_words)})\b\s*\S*', '', text)
+    extracted_numbers = []
 
-def score_serial_sevens(response):
-    """Scores each correct subtraction of 7 from the previous number said, starting from 100.
-    Strips the patient's restatement of the question itself ("one hundred minus seven", "take
-    away seven") first, so echoing the problem isn't picked up as part of their answer sequence."""
-    words = clean_response(_strip_syllable_stutters(response)).split()
-
-    stripped = []
-    skip_number = False
-    for w in words:
-        if w == "hundred":
-            # Pop a stutter on the leading digit too (e.g. "one... one hundred"),
-            # not just the single word directly before "hundred".
-            last_val = normalise_number(stripped[-1]) if stripped else None
-            while stripped and last_val is not None and last_val.isdigit() and normalise_number(stripped[-1]) == last_val:
-                stripped.pop()
-            continue
-        if w in _SUBTRACTION_ECHO_WORDS:
-            skip_number = True
-            continue
-        if w == "and":
-            continue
-        if skip_number and normalise_number(w).isdigit():
-            skip_number = False
-            continue
-        skip_number = False
-        stripped.append(w)
-    words = stripped
-
-    spans = []
-    i = 0
-    while i < len(words):
-        found = False
-        for n in range(min(2, len(words) - i), 0, -1):
-            tokens = words[i:i + n]
-            val = normalise_number(" ".join(tokens))
-            try:
-                num = int(val)
-                if 0 <= num < 100:
-                    spans.append((tokens, num))
-                    i += n
-                    found = True
-                    break
-            except ValueError:
-                pass
-        if not found:
+    # Process text chunks/words to identify integers or spoken number phrases
+    for token in re.split(r'[,;.\n]+', text):
+        words = token.strip().split()
+        # Try evaluating phrases or individual words as numbers
+        i = 0
+        while i < len(words):
+            # Try matching 2-word combinations first (e.g., "ninety three")
+            if i + 1 < len(words) and words[i] in number_words and words[i+1] in number_words:
+                phrase = f"{words[i]} {words[i+1]}"
+                try:
+                    num = w2n.word_to_num(phrase)
+                    extracted_numbers.append(num)
+                    i += 2
+                    continue
+                except ValueError:
+                    pass
+            # Try single word or digit string
+            item = words[i]
+            if item.isdigit():
+                extracted_numbers.append(int(item))
+            else:
+                try:
+                    num = w2n.word_to_num(item)
+                    extracted_numbers.append(num)
+                except ValueError:
+                    # Non-numerical filler word (e.g., "um", "uh", "then") -> ignored
+                    pass
             i += 1
-    numbers = []
-    for idx, (tokens, num) in enumerate(spans):
-        if idx + 1 < len(spans):
-            next_tokens = spans[idx + 1][0]
-            is_word_prefix = len(tokens) < len(next_tokens) and next_tokens[:len(tokens)] == tokens
-            is_syllable_stutter = (
-                len(tokens) == 1 and tokens[0] != next_tokens[0]
-                and next_tokens[0].startswith(tokens[0])
-            )
-            if is_word_prefix or is_syllable_stutter:
-                continue
-        if not numbers or numbers[-1] != num:
-            numbers.append(num)
+    cleaned_numbers = []
+    for num in extracted_numbers:
+        if num >= 100:
+            continue
+        if not cleaned_numbers or num != cleaned_numbers[-1]:
+            cleaned_numbers.append(num)
 
+    return cleaned_numbers
+    
+def score_serial_sevens(response):
+    numbers = serial_sevens_clean(response)
     score = 0
     prev = 100
     for num in numbers[:5]:
@@ -162,112 +149,112 @@ def score_serial_sevens(response):
         prev = num
     return score
 
+tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
+
+def _is_number_fragment(response_words, i, n):
+    """A lone ones/ordinal word (e.g. "ninth") immediately preceded by a
+    tens-word (e.g. "twenty ninth", from hyphen-split "twenty-ninth") is the
+    tail of a compound number -- only the pair together counts as a match,
+    not the ones-word alone."""
+    return n == 1 and i > 0 and response_words[i - 1] in tens
+
 def score_fuzzy(response, answers):
-    """Any answer from alternatives list matches = 1 point."""
+    """Any answer from = 1 point."""
     response_words = clean_response(response).split()
     for answer in answers:
+        # Pre-process target answer
         expected = normalise_number(clean_response(answer))
-        for n in range(1, min(MAX_FUZZY_WINDOW, len(response_words)) + 1):
+        for n in range(1, min(fuzzy_threshold, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
+                if _is_number_fragment(response_words, i, n):
+                    continue
                 span = response_words[i:i + n]
                 window = normalise_number(" ".join(span))
                 window_joined = normalise_number("".join(span))
-                if (rapidfuzz.fuzz.ratio(window, expected) >= FUZZY_THRESHOLD
+                # Check match criteria: fuzzy similarity exact match OR phonetic sound
+                if (rapidfuzz.fuzz.ratio(window, expected) >= fuzzy_threshold
                         or window_joined == expected
                         or phonetic_equal(window, expected)):
                     return 1
     return 0
 
-_NAME_FILLER_WORDS = {
+def is_same(a, b):
+    return rapidfuzz.fuzz.ratio(a, b) >= fuzzy_threshold or phonetic_equal(a, b)
+
+name_fillers = {
     "his", "her", "him", "its", "it's", "name", "is", "was", "the", "a", "an",
     "um", "uh", "erm", "i", "think", "that's", "that", "mr", "mrs", "ms", "dr",
     "president", "minister", "prime", "hold", "on", "yes", "sure", "right", "okay", "ok",
 }
 
-def _norm(text):
-    return normalise_number(clean_response(text)).split()
-
-def _same(a, b):
-    return rapidfuzz.fuzz.ratio(a, b) >= FUZZY_THRESHOLD or phonetic_equal(a, b)
-
-def last_full_name_match_is_final(words, full):
-    """True if one of the full-name answers has a matching window in `words`
-    and nothing but filler follows it -- i.e. it's the last name actually
-    claimed, not one of several names listed before moving on to another
-    guess (e.g. "is it Churchill, Thatcher, or Blair" should not credit
-    Thatcher just because it's mentioned somewhere in the middle)."""
-    targets = [normalise_number(clean_response(a)) for a in full]
-    end = -1
-    for n in range(1, min(MAX_FUZZY_WINDOW, len(words)) + 1):
-        for i in range(len(words) - n + 1):
-            window = normalise_number(" ".join(words[i:i + n]))
-            if any(rapidfuzz.fuzz.ratio(window, t) >= FUZZY_THRESHOLD or phonetic_equal(window, t)
-                   for t in targets):
-                end = max(end, i + n)
-    if end == -1:
-        return False
-    return all(w in _NAME_FILLER_WORDS for w in words[end:])
 
 def score_person_name(response, answers):
-    """1 if the response names the person. A bare surname (with or without
-    filler/honorifics) counts; a surname preceded by a substantive but wrong
-    given name does not."""
+    """
+    - Allows surnames (e.g., "Obama").
+    - If full name is incorrect (e.g., "June Thatcher" instead of "Margaret Thatcher"), score is 0.
+    """
+    # Isolate multi-word accepted answers (e.g., ["Margaret", "Thatcher"])
     full = [a for a in answers if len(a.split()) > 1]
-    if full and last_full_name_match_is_final(_norm(response), full):
-        return 1
-
-    surnames = [_norm(a)[0] for a in answers if len(a.split()) == 1]
+    # Isolate target surnames (e.g., ["Thatcher"])
+    surnames = [clean_response(a) for a in answers if len(a.split()) == 1]
     if not surnames:
         return 0
-
-    full_tokens = [_norm(a) for a in full]
-    words = _norm(response)
-
+    full_tokens = [clean_response(a).split() for a in full]
+    words = clean_response(response).split()
     for surname in surnames:
-        # every accepted given-name sequence ending in this surname
-        givens = [t[:-1] for t in full_tokens if _same(t[-1], surname)]
-
+        # Get valid given-name sequences for this surname (e.g., ["Margaret"])
+        givens = [t[:-1] for t in full_tokens if is_same(t[-1], surname)]
         for i, w in enumerate(words):
-            if not _same(w, surname):
+            # Locate the position of the surname in the user's response
+            if not is_same(w, surname):
                 continue
-            if not all(x in _NAME_FILLER_WORDS for x in words[i + 1:]):
-                continue  # more than filler follows -- not the final name said
-
+            # Gather preceding non-filler words (the given names provided by the user)
             claimed, j = [], i - 1
-            while j >= 0 and words[j] not in _NAME_FILLER_WORDS:
+            while j >= 0 and words[j] not in name_fillers:
                 claimed.insert(0, words[j])
                 j -= 1
-
+            # Rule: Bare surname provided (e.g., "Thatcher" or "Mrs. Thatcher") -> Score 1
             if not claimed:
                 return 1
-            if any(len(g) == len(claimed) and all(_same(x, y) for x, y in zip(claimed, g))
+            # Rule: Full name provided -> Score 1 ONLY if given name matches ("Margaret Thatcher"),
+            # otherwise Score 0 if given name is incorrect ("June Thatcher").
+            if any(len(g) == len(claimed) and all(is_same(x, y) for x, y in zip(claimed, g))
                    for g in givens):
                 return 1
- 
+
     return 0
 
 def score_fuzzy_list(response, answers):
     """Each answer in list scored separately via sliding window. Response words
-    already used by an earlier match can't be reused by a later one."""
+    already used by an earlier match can't be reused by a later one. 
+    Called in Repetiton Questions --> Statistician, """
     score = 0
-    matched = set()
-    used_words = set()
+    matched = set() # Tracks distinct target answers already found to avoid duplicate scoring
+    used_words = set() # Tracks word indices in the response already consumed by a match
     response_words = clean_response(response).split()
+
+    # Pre-process and normalize expected target answers
     expected = [normalise_number(clean_response(a)) for a in answers]
 
     for y in expected:
+        # Skip this target answer if an identical target was already matched
         if y in matched:
             continue
-        for n in range(1, min(MAX_FUZZY_WINDOW, len(response_words)) + 1):
+        # Try n-gram window sizes from 1 up to MAX_FUZZY_WINDOW (or total response length)
+        for n in range(1, min(fuzzy_threshold, len(response_words)) + 1):
+            # Slide an n-word window across the response text
             for i in range(len(response_words) - n + 1):
+                # Skip candidate windows containing word indices already claimed by a prior match
                 if used_words & set(range(i, i + n)):
                     continue
+                # combine words into normalized phrase
                 window = normalise_number(" ".join(response_words[i:i + n]))
-                if rapidfuzz.fuzz.ratio(window, y) >= FUZZY_THRESHOLD or phonetic_equal(window, y):
+                # Check match criteria: high fuzzy string similarity OR matching phonetic sound
+                if rapidfuzz.fuzz.ratio(window, y) >= 88 or phonetic_equal(window, y):
                     matched.add(y)
                     used_words.update(range(i, i + n))
                     score += 1
-                    break
+                    break # Match found for size 'n'; exit the window-position loop
             else:
                 continue
             break
@@ -286,61 +273,102 @@ def score_sentence_repetition(response, answers):
     words = clean_response(answers[0]).split()
     return score_all_correct_list(response, words)
 
-_ANIMAL_ROOTS = None
+def is_animal(word):
+    """Checks if a word belongs to the animal hierarchy in WordNet."""
+    formatted = word.replace(" ", "_")
+    for ss in wn.synsets(formatted, pos=wn.NOUN):
+        if ss == wn.synset("animal.n.01"):
+            return True
+        parents = set(ss.closure(lambda s: s.hypernyms()))
+        if wn.synset("animal.n.01") in parents:
+            return True
+        if ss == wn.synset("mythical_creature.n.01"): # Mythical Creatures are accepted
+            return True
+        if ss == wn.synset("dinosaur.n.01"): # dinousours are accepted
+            return True
+    return False
 
-def _get_animal_roots():
-    global _ANIMAL_ROOTS
-    if _ANIMAL_ROOTS is None:
-        _ANIMAL_ROOTS = set(wn.synsets("animal", pos=wn.NOUN))
-    return _ANIMAL_ROOTS
-
-def _is_animal_synset(synset):
-    roots = _get_animal_roots()
-    return synset in roots or bool(roots & set(synset.closure(lambda s: s.hypernyms())))
-
-def get_animals():
-    animals = set()
-    for synset in wn.synsets("animal", pos=wn.NOUN):
-        for hyponym in synset.closure(lambda s: s.hyponyms()):
-            for lemma in hyponym.lemmas():
-                animals.add(lemma.name().lower().replace("_", " "))
-    return animals
-
-ANIMAL_TYPES = {
+animal_types = {
     "fish", "bird", "insect", "reptile", "mammal", "rodent",
     "amphibian", "primate", "bug", "animal", "shellfish", "arachnid",
 }
 
-def _drop_subsumed_categories(unique_valid):
-    """If a more specific animal word is also present, drop the class its assumed in
-    (e.g. 'fish' dropped when 'salmon' and
-    'trout' are also said) — only the specific exemplars should count."""
-    synset_of = {}
-    for w in unique_valid:
-        for ss in wn.synsets(w.replace(" ", "_"), pos=wn.NOUN):
-            if _is_animal_synset(ss):
-                synset_of[w] = ss
-                break
+# examples like Doe, Deer , faawn and stag are worth 1 point
+gender_map = {
+    "doe": "deer", "stag": "deer", "fawn": "deer", "buck": "deer",
+    "bull": "cow", "calf": "cow", "heifer": "cow", "steer": "cow",
+    "stallion": "horse", "mare": "horse", "foal": "horse", "colt": "horse",
+    "rooster": "chicken", "hen": "chicken", "chick": "chicken",
+    "ram": "sheep", "ewe": "sheep", "lamb": "sheep",
+    "sow": "pig", "boar": "pig", "piglet": "pig",
+    "cub": "bear", "lioness": "lion", "puppy": "dog", "kitten": "cat"
+}
 
-    to_drop = set()
-    for w, ss_w in synset_of.items():
-        if w not in ANIMAL_TYPES:
+def score_animal_fluency(response):
+    words = clean_response(response).split()
+    unique_animals = set()
+    used_indices = set()
+
+    # Catch 2-word animals in WordNet (e.g., "polar bear")
+    for i in range(len(words) - 1):
+        bigram = f"{words[i]} {words[i + 1]}"
+        if is_animal(bigram):
+            canonical = gender_map.get(bigram, bigram) # checks against bigram to see if gender-specific name is present
+            unique_animals.add(canonical)
+            used_indices.update({i, i + 1}) 
+    # Catch 1-word animals in WordNet + lemmatize plurals ("cats" -> "cat")
+    for i, word in enumerate(words):
+        if i in used_indices:
             continue
-        for x, ss_x in synset_of.items():
-            if w != x and ss_w in ss_x.closure(lambda s: s.hypernyms()):
-                to_drop.add(w)
-                break
-    return unique_valid - to_drop
+        root = wn.morphy(word, wn.NOUN) or word
+        matched_term = None
+
+        if is_animal(word): 
+            matched_term = word
+        elif is_animal(root): # Fallback for base form of animal
+            matched_term = root
+
+        if matched_term:
+            canonical = gender_map.get(matched_term, matched_term)
+            unique_animals.add(canonical)
+
+    # Map unique animal names to their primary WordNet noun synset
+    synsets = {}
+    for animal_name in unique_animals:
+        formatted_name = animal_name.replace(" ", "_")
+        # Query WordNet for noun synsets matching the formatted name
+        found_synsets = wn.synsets(formatted_name, pos=wn.NOUN)
+        # If matches exist, store the primary (first) synset using the original name
+        if found_synsets:
+            synsets[animal_name] = found_synsets[0]
+
+    # Drop a category word (e.g. "fish") if a specific exemplar under it was
+    # also said (e.g. "salmon") -- only the specific exemplars should count.
+    to_drop = set()
+    for category in unique_animals:
+        if category in animal_types and category in synsets:
+            cat_ss = synsets[category]
+            for item_name, item_ss in synsets.items():
+                if item_name != category:
+                    parents = set(item_ss.closure(lambda s: s.hypernyms()))
+                    if cat_ss in parents:
+                        to_drop.add(category)
+                        break
+
+    final_unique = unique_animals - to_drop
+    return scaled_count(len(final_unique), CATEGORY_FLUENCY_BANDS)
+
+
 
 def scaled_count(count, bands):
-    """Returns score from the first band where count falls between min and max. if no band matches return 0 score"""
+    """Returns score from the first band where count falls between min and max. 
+    if no band matches return 0 score"""
     for min_count, max_count, score in bands:
         if min_count <= count <= max_count:
             return score
     return 0
 
 # Common P- first names excluded from letter fluency even when they also happen
-
 COMMON_NAMES = {
     "peter", "paul", "patricia", "pamela", "paula", "penny", "penelope",
     "philip", "phillip", "phoebe", "priscilla", "patrick", "percy", "piper",
@@ -351,14 +379,19 @@ def p_word_root(word):
     Normalizing to the WordNet root (via morphy) merges perseverations and plurals
     (pay/paid/pays -> pay, pot/pots -> pot) into a single countable word."""
     word = word.lower().strip()
+    # Rejects the word if less than 2 or starts with P return None
     if len(word) < 2 or not word.startswith("p"):
         return None
+    # rejects word if in common names
     if word in COMMON_NAMES:
         return None
+    # Gets the base dictonary root (e.g paid -> pay)
     root = wn.morphy(word)
-    if root is None:
+
+    if root is None: # rejects madeup words or typos
         return None
-    for synset in wn.synsets(root):
+    # Check if root exists as a common word in WordNet
+    for synset in wn.synsets(root): 
         for lemma in synset.lemmas():
             if lemma.name().lower() == root and lemma.name()[0].islower():
                 return root
@@ -367,38 +400,12 @@ def p_word_root(word):
 def score_letter_fluency(response):
     """Scores valid P words a person produces and converts into fluency score 0-7"""
     words = clean_response(response).split()
+
+    # Gests unique dictionary roots {} drops duplicate values
     roots = {p_word_root(w) for w in words}
-    roots.discard(None)
-    return scaled_count(len(roots), LETTER_FLUENCY_BANDS)
 
-def score_animal_fluency(response):
-    """Counts distinct valid animals a person mentions and converts into count fluency score 0-7"""
-    global _ANIMALS
-    if _ANIMALS is None:
-        _ANIMALS = get_animals()
-    words = clean_response(response).split()
-    unique_valid = set()
-    used_indices = set()
-
-    for i in range(len(words) - 1):
-        bigram = words[i] + " " + words[i + 1]
-        if bigram in _ANIMALS:
-            unique_valid.add(bigram)
-            used_indices.add(i)
-            used_indices.add(i + 1)
-
-    for i, w in enumerate(words):
-        if i in used_indices:
-            continue
-        if w in _ANIMALS:
-            unique_valid.add(w)
-        else:
-            root = wn.morphy(w, wn.NOUN)
-            if root and root in _ANIMALS:
-                unique_valid.add(root)
-
-    unique_valid = _drop_subsumed_categories(unique_valid)
-    return scaled_count(len(unique_valid), CATEGORY_FLUENCY_BANDS)
+    roots.discard(None) # Removes None from the list
+    return scaled_count(len(roots), LETTER_FLUENCY_BANDS) # Returns score 0-7
 
 def parse_spoken_prompts(question: dict) -> list[str]:
     """Extract every spoken prompt from instructions, one entry per Wait-for-response pause."""
@@ -430,6 +437,7 @@ def score_mixed_list_detailed(response, answers):
     Used to carry per-element recall results into a later recognition task."""
     matched_text = set()
     matched = [False] * len(answers)
+    
     response_words = clean_response(response).split()
 
     for idx, answer in enumerate(answers):
@@ -443,7 +451,7 @@ def score_mixed_list_detailed(response, answers):
             for i in range(len(response_words) - n + 1):
                 window_raw = " ".join(response_words[i:i + n])
                 window = normalise_number(window_raw)
-                hit = (window == normed) if is_number else (rapidfuzz.fuzz.ratio(window_raw, cleaned) >= FUZZY_THRESHOLD)
+                hit = (window == normed) if is_number else (rapidfuzz.fuzz.ratio(window_raw, cleaned) >= fuzzy_threshold)
                 if hit:
                     matched_text.add(cleaned)
                     matched[idx] = True
@@ -457,45 +465,6 @@ def score_mixed_list(response, answers):
     """Each answer scored separately; numeric answers use integer match, strings use fuzzy."""
     return sum(score_mixed_list_detailed(response, answers))
 
-def _score_clock_visual(image_path, response):
-    from visual_tasks.clock_scorer import score_clock_image
-    return score_clock_image(response)["total"]
-
-def _score_wire_cube_visual(image_path, response):
-    if not response:
-        return None
-    from visual_tasks.cube_scorer import score_cube_image
-    return score_cube_image(response)["total"]
-
-def _score_infinity_diagram_visual(image_path, response):
-    if not response:
-        return None
-    from visual_tasks.infinity_scorer import score_infinity_image
-    return score_infinity_image(response)["total"]
-
-def _score_writing_visual(image_path, response):
-    if not response:
-        return None
-    from visual_tasks.writing import score_writing_image
-    return score_writing_image(response)["total"]
-
-def _score_pen_paper_visual(image_path, response):
-    if not response:
-        return None
-    from visual_tasks.pen_paper_scorer import score_pen_paper_video
-    return score_pen_paper_video(response)["total"]
-
-
-# Maps a question_text prefix to its scorer. Extend here when a new visual task gets an automated scorer.
-VISUAL_SCORERS = {
-    "Clock": _score_clock_visual,
-    "Wire Cube": _score_wire_cube_visual,
-    "Infinity Diagram": _score_infinity_diagram_visual,
-    "Writing": _score_writing_visual,
-    "Comprehension": _score_pen_paper_visual,
-}
-
-
 def score_question(response, question, sub_index=None):
     """Main dispatch. Returns None for manual questions (flag for review), int otherwise."""
     match_type = question.get("match_type", "fuzzy_list")
@@ -507,12 +476,16 @@ def score_question(response, question, sub_index=None):
         return score_letter_fluency(response)
     if match_type == "fluency_animal":
         return score_animal_fluency(response)
-    if match_type == "visual":
-        text = question.get("question_text", "")
-        for prefix, scorer in VISUAL_SCORERS.items():
-            if text.startswith(prefix + ":"):
-                return scorer(question.get("image"), response)
-        return None  # no automated scorer yet for this visual task
+    if match_type == "clock":
+        return score_clock_image(response)['total']
+    if match_type == "pen_paper":
+        return score_pen_paper_video(response)["total"]
+    if match_type == "cube":
+        return score_cube_image(response)["total"]
+    if match_type == "sentances":
+        return score_writing_image(response)["total"]
+    if match_type == "infinity":
+        return score_infinity_image(response)["total"]
     if not answers:
         return 0
 

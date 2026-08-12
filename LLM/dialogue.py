@@ -62,7 +62,7 @@ def transition() -> str:
     return result.content.strip().strip('"')
 
 
-def resolve_wrapper(state, patient_name: str, domain: str, modality: str, sub_index: int) -> str:
+def transition_que(state, patient_name: str, domain: str, task_type: str, sub_index: int) -> str:
     """Single source of truth for the spoken wrapper prepended to a fresh
     question: the one-time session intro, a transition cue when the domain or
     task modality just changed, a plain acknowledgment of the previous answer,
@@ -76,9 +76,9 @@ def resolve_wrapper(state, patient_name: str, domain: str, modality: str, sub_in
 
     previous_signature = state.get("previous_task_signature")
     """Transition Task to Paper"""
-    if previous_signature is not None and previous_signature != (domain, modality):
+    if previous_signature is not None and previous_signature != (domain, task_type):
         return transition()
-    if domain == "Visuospatial" and modality == "click" and previous_signature != (domain, modality):
+    if domain == "Visuospatial" and task_type == "click" and previous_signature != (domain, task_type):
         return transition()
 
     last_patient = next(
@@ -88,8 +88,6 @@ def resolve_wrapper(state, patient_name: str, domain: str, modality: str, sub_in
     if last_patient:
         return acknowledge(last_patient)
     return ""
-
-
 
 def rephrase_question(question_text: str) -> str:
     """Rephrased version of the question spoken when the patient didn't understand."""
@@ -160,15 +158,13 @@ LABELS = {"answer", "repeat", "off_topic", "incomplete"}
 def classify_turn(last_response: str, question_text: str = "") -> str:
     out = llm_strict.invoke([
         SystemMessage(content=(
-            "Classify a patient's utterance during a cognitive test, given the question "
+            "Classify a patient's speach during a cognitive test, given the question "
             "they were just asked. Reply with EXACTLY one of these words, nothing else: "
             "answer, repeat, off_topic, incomplete.\n"
             "- answer: a genuine attempt at THIS question, right or wrong, however short. "
             " replies (a single number, word, name, ordinal, or 'the first') are "
             "complete answers. Repeating the same word in context thats relivent to the question is an answer. "
             "If a real answer value appears anywhere in the utterance, it counts as answer even "
-            "when wrapped in dismissive commentary, sarcasm, attitude, or hesitation fillers "
-            "('um'/'uh') — judge the content, not the tone or delivery.\n"
             "- repeat: asking YOU to say the question again ('what?', 'sorry?', 'say that "
             "again') or saying they didn't hear it.\n"
             "- off_topic: not a plausible attempt at this question — rambling, nonsense "
@@ -201,14 +197,11 @@ def extract_final_answer(last_response: str, question_text: str = "") -> str:
     """Resolves a patient's utterance down to the single value they actually
     settled on, for questions later matched by fuzzy string comparison
     (orientation day/date/month/season, recognition multiple-choice,
-    picture-comprehension choices). Handles self-correction (says the wrong
-    one first, then corrects), reasoning asides that mention a nearby but
-    irrelevant value, and brute-force listing of every plausible option.
-    Returns an empty string when no single value was actually committed to."""
+    picture-comprehension choices).."""
     out = llm_strict.invoke([
         SystemMessage(content=(
             "The patient was asked a question with one correct value in mind. Reply with "
-            "ONLY the single value they actually settled on as their answer, nothing else "
+            "just the single value they actually settled on as their answer, nothing else "
             "(no explanation, no punctuation beyond what's in the value itself, and no "
             "leading article like 'the'/'a'/'an'). "
             "If they corrected themselves, use the corrected value, not the discarded one. "
@@ -227,3 +220,4 @@ def extract_final_answer(last_response: str, question_text: str = "") -> str:
         HumanMessage(content=f"Question asked: {question_text}\nPatient said: {last_response}")
     ])
     return out.content.strip().strip('"')
+

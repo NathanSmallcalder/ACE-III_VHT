@@ -14,14 +14,12 @@ The target diagram is two separate figure-eight (infinity symbol, "∞") shapes,
 so they overlap in the middle. Each figure-eight shape on its own has two loops that meet at a central waist
 where the line crosses itself to a sharp point — it must look like an infinity symbol, not like two circles
 or ovals merely touching or fused together.
-
-Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing.
+Describe only what is visible in the drawing.
 Respond with a single JSON object and nothing else — no explanation.
-
 {
-  "figure_eight_count": "<integer, or unclear — how many distinct figure-eight/infinity shapes are drawn>",
-  "are_circles": "<yes/no/unclear — is the drawing one stroke or is it two circles overlapping?>",
-  "figure_eights_overlap": "<yes/no/unclear — do the two figure-eight shapes visibly overlap each other in the middle>",
+  "figure_eight_count": "<integer — how many distinct figure-eight/infinity shapes are drawn>",
+  "are_circles": "<yes/no — is the drawing one stroke or is it two circles overlapping?>",
+  "figure_eights_overlap": "<yes/no — do the two figure-eight shapes visibly overlap each other in the middle>",
 
   "notes": "<one short sentence flagging anything unusual not captured above, or none>"
 }
@@ -50,7 +48,6 @@ def score_infinity(data: dict) -> dict:
         get("are_circles") == "no",
         get("figure_eights_overlap") == "yes",
     ]
-
     total = 1 if all(checks) else 0
 
     return {"total": total}

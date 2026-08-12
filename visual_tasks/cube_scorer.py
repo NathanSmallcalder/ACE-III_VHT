@@ -15,8 +15,7 @@ Be lenient when counting edges: count an edge as present if there is a line that
 if the line is wavy, doesn't meet cleanly at the corner, overshoots past the vertex, or is faint — imperfect
 execution still counts. Only mark an edge as absent if there is no line at all along that connection.
 
-Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing.
-Respond with a single JSON object and nothing else — no preamble, no explanation, no markdown fences.
+Describe only what is visible in the drawing. Respond with a single JSON object and nothing else.
 
 {
   "edges_present": "<integer 0-12 — how many of the cube's 12 canonical edges (4 on the front face, 4 on the back face, 4 connecting the two) are represented by a line in the drawing, ignoring any extra stray marks>",

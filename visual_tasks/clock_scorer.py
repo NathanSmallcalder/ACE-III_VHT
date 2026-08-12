@@ -7,7 +7,7 @@ load_dotenv()
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
 CLOCK_PROMPT = """You are analysing a hand-drawn clock image for clinical scoring purposes.
-Describe only what is visible in the drawing. Where a field allows "unclear", use it rather than guessing. Where a field does not apply
+Describe only what is visible in the drawing. Where a field does not apply
 (e.g. hand fields when no hands are drawn), use "none".
 
 Before giving the JSON, reason step by step about the two hands specifically:
@@ -28,9 +28,9 @@ Respond with a single JSON object and nothing else — no explanation.
 
   "hand_count": "<0/1/2/more>",
   "hands_originate_from_centre": "<yes/no/unclear/none — do the hands start from roughly the centre of the clock face?>",
-  "shorter_hand_points_to": "<integer 1-12, or unclear, or none>",
-  "longer_hand_points_to": "<integer 1-12, or unclear, or none>",
-  "hands_same_length": "<yes/no/unclear/none — if yes, report the two hands under shorter/longer in any order>",
+  "shorter_hand_points_to": "<integer 1-12, or none>",
+  "longer_hand_points_to": "<integer 1-12, or none>",
+  "hands_same_length": "<yes/no/none — if yes, report the two hands under shorter/longer in any order>",
 
   "notes": "<one short sentence flagging anything unusual not captured above, or none>"
 }

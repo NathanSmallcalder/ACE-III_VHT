@@ -2,7 +2,11 @@ import json
 import os
 from datetime import datetime, timedelta
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "json/session_config.json")
+config = os.path.join(os.path.dirname(__file__), "json/session_config.json")
+ace = os.path.join(os.path.dirname(__file__), "json/ACE-III.json")
+
+with open(ace, "r") as f:
+    ace_json = json.load(f)["Domains"]
 
 def get_season(date):
     month = date.month
@@ -72,8 +76,8 @@ def resolve_dynamic_answers(answers, session_config):
     return resolved
 
 def get_session_config():
-    if os.path.exists(CONFIG_PATH):
-        with open(CONFIG_PATH, "r") as f:
+    if os.path.exists(config):
+        with open(config, "r") as f:
             return json.load(f)
     # Fallback to interactive prompts if config file is missing
     return {

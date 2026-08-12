@@ -81,9 +81,7 @@ def capture_drawing(output_path, camera_index=0):
     """Read a live webcam feed and capture a rectified photo of a hand-drawn sheet.
     Auto-captures as soon as a document outline is found, or after
     AUTO_CAPTURE_TIMEOUT seconds (using the last frame, rectified if an outline
-    was found).
-
-    Returns the path the rectified image was saved to.
+    was found). Returns the path the rectified image was saved to.
     """
     cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():

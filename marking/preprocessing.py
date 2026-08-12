@@ -1,7 +1,7 @@
 import re
 from word2number import w2n
 
-_ORDINAL_WORDS = {
+ordinals = {
     "first": "one", "second": "two", "third": "three", "fourth": "four",
     "fifth": "five", "sixth": "six", "seventh": "seven", "eighth": "eight",
     "ninth": "nine", "tenth": "ten", "eleventh": "eleven", "twelfth": "twelve",
@@ -16,15 +16,15 @@ def clean_response(text):
     text = re.sub(r'\s+', ' ', text)
     return text.lower().strip()
 
-_NUMBER_WORDS = set(w2n.american_number_system.keys())
+number_words = set(w2n.american_number_system.keys())
 
 # e.g Converts 85 into eighty-five
 def normalise_number(text):
-    text = " ".join(_ORDINAL_WORDS.get(w, w) for w in text.split())
+    text = " ".join(ordinals.get(w, w) for w in text.split())
     words = text.split()
-    if not all(w.isdigit() or w in _NUMBER_WORDS or w == "and" for w in words):
+    if not all(w.isdigit() or w in number_words or w == "and" for w in words):
         return text
-    if not any(w.isdigit() or w in _NUMBER_WORDS for w in words):
+    if not any(w.isdigit() or w in number_words for w in words):
         return text
     try:
         return str(w2n.word_to_num(text))

@@ -4,7 +4,7 @@ import time
 from rapidfuzz import fuzz
 from langchain_core.messages import AIMessage, HumanMessage
 
-from LLM.dialogue import resolve_wrapper, rephrase_question, check_in
+from LLM.dialogue import resolve_wrapper, rephrase_question
 from marking.marking import parse_spoken_prompts
 
 draw_tasks = {"Clock", "Infinity Diagram", "Wire Cube", "Writing"}
@@ -91,14 +91,13 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
     print("Assessor:", spoken_text)
     gui.add_message("assessor", spoken_text)
 
-    if _is_draw_task(question):
+    if _is_draw_task(question): # Responsible for generating conversation during the drawing tasks
         if wrapper:
             tts.speak(wrapper)
         for prompt in spoken:
             tts.speak(prompt)
         time.sleep(0.45)
 
-        tts.speak(check_in())
         task_name = question["question_text"].split(":")[0].lower().replace(" ", "_")
         output_path = os.path.join(os.path.dirname(__file__), f"{task_name}.png")
         gui.launch_camera_capture(output_path, audio, tts, duration=draw_timer,
