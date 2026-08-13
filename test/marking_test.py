@@ -71,7 +71,11 @@ fuzzy_cases = {
     "repeat_words_stutter_eccentricity":("e-eccen... tri... ci... ty.", ["eccentricity"], 1),
     "repeat_words_small_stutter":("ca-ter... pil-lar.", ["caterpillar"], 1),
     "repeat_words_missing_syllable":("un... in... tell... i... ble.", ["unintelligible"], 0),
-    "repeat_words_stutter":("e-e-eccen... tri... city.", ["eccentricity"], 1) 
+    "repeat_words_stutter":("e-e-eccen... tri... city.", ["eccentricity"], 1),
+    "compound_ordinal_not_mistaken_for_its_ones_digit": (
+        "the twenty-ninth", ["9", "10", "11", "12", "13"], 0
+    ),
+    "standalone_ones_digit_still_matches": ("it is the ninth", ["9", "10", "11", "12", "13"], 1),
 }
 
 @pytest.mark.parametrize(
@@ -88,6 +92,11 @@ def test_score_fuzzy(response, answers, expected):
 fuzzy_list_cases = {
     "test": ("lemon key ball", ["lemon", "key", "ball"], 3),
     "spam_answer": ("orange lemon spoon key coin ball", ["lemon", "key", "ball"], 3),
+    "statistic_not_credited_for_statistician": (
+        "caterpillar eccentricity unintelligible statistic",
+        ["caterpillar", "eccentricity", "unintelligible", "statistician"],
+        3,
+    ),
 }
 
 @pytest.mark.parametrize(
@@ -103,10 +112,18 @@ def test_score_fuzzy_list(response, answers, expected):
 # score_all_correct_list: Reading (Language) -- sew, pint, soot, dough, height
 all_correct_list_cases = {
     "test": ("sew pint soot dough height", ["sew", "pint", "soot", "dough", "height"], 1),
-    "spam_answer": ("sew sew red pint so-soot dough dough height", ["sew", "pint", "soot", "dough", "height"], 1),
+    "noise_awnser": ("sew sew red pint soot dough dough height", ["sew", "pint", "soot", "dough", "height"], 1),
     "misread_word_via_stray_letter_fragment_correctly_fails": (
         "s-sew... p-pint... s-soot... d-duff... h-height...",
         ["sew", "pint", "soot", "dough", "height"], 0,
+    ),
+    "close_awnser": (
+        "sou, pint, sut, dough, height",
+        ["sew", "pint", "soot", "dough", "height"], 1,
+    ),
+    "phonetically_close": (
+    "sou, pint, sut, doe, height",
+    ["sew", "pint", "soot", "dough", "height"], 1,
     ),
 }
 
@@ -145,7 +162,8 @@ def test_score_person_name(response, answers, expected):
 sentence_repetition_cases = {
     "test": ("um let me see, all that glitters is not gold", ["All that glitters is not gold"], 1),
     "spam_answer": ("a stitch in time saves nine, then, all that glitters is not gold", ["All that glitters is not gold"], 1),
-    "completely_different_sentence": ("every dog has its day", ["All that glitters is not gold"], 0),
+    "completely_different_sentence": ("the suns out today", ["All that glitters is not gold"], 0),
+    "close": ("all that glitters is not silver", ["All that glitters is not gold"], 0),
     "trailing_off_before_last_word_is_wrong": (
         "A stitch... in time... um... saves... saves...",
         ["A stitch in time saves nine"], 0,
@@ -272,6 +290,8 @@ animal_fluency_cases = {
     "two_word_animal_name_matched_as_bigram": ("dog cat horse cow guinea pig", 1),
     "no_animals_said": ("car table lamp chair", 0),
     "empty_response": ("", 0),
+    "mythical": ("dragon, tyrannosaurus, cat, dog ,mouse",1),
+    "full_mythical_or_extinct": ("dragon, cyclops, centaur ,stegosaurus, lizard",1),
 }
 
 @pytest.mark.parametrize(

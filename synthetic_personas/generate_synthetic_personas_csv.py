@@ -34,37 +34,45 @@ items = [
 
 domains = ["attention_orientation", "memory", "fluency", "language", "visuospatial"]
 
-ranges = {
+ranges = { # https://pmc.ncbi.nlm.nih.gov/articles/PMC12207243/pdf/ENE-32-e70257.pdf
     "healthy": (0.88, 1.00),
-    "mci": (0.65, 0.87),
-    "dementia": (0.30, 0.64),
+    "mci": (0.77, 0.87),
+    "dementia": (0.30, 0.76),
 }
 indicator = {"healthy": 0.33, "mci": 0.33, "dementia": 0.33}
 
 def make_profile(pid: str) -> dict:
-    row = {"participant_id": pid}
+    # Sample cognitive status based on population weights
+    selected_status = random.choices(list(indicator.keys()), weights=list(indicator.values()))[0]
+    min_pct, max_pct = ranges[selected_status]
 
-    status = random.choices(list(indicator), weights=list(indicator.values()))[0]
-    row["cognitive_status"] = status
-    low, high = ranges[status]
+    for _ in range(200):
+        profile = {"participant_id": pid, "cognitive_status": selected_status}
+        base_ability = random.uniform(min_pct, max_pct)
+        
+        # Generate item-level scores with strict upper-bound capping
+        for item_name, _domain, max_pts in items:
+            noisy_pct = max(0.0, min(1.0, random.gauss(base_ability, 0.05)))
+            profile[item_name] = min(max_pts, round(noisy_pct * max_pts))
+            
+        # Aggregate domain totals (Attention, Memory, Fluency, Language, Visuospatial)
+        for dom in domains:
+            profile[dom] = sum(profile[item_name] for item_name, d, _ in items if d == dom)
 
-    for name, _domain, max_score in items:
-        percent_correct = random.uniform(low, high)
-        row[name] = round(percent_correct * max_score)
+        # Total ACE-III score (Max 100)
+        profile["ace3_total"] = sum(profile[dom] for dom in domains)
 
-    for domain in domains:
-        row[domain] = sum(row[name] for name, d, _ in items if d == domain)
+        if min_pct * 100 <= profile["ace3_total"] <= max_pct * 100:
+            break
 
-    row["ace3_total"] = sum(row[domain] for domain in domains)
+    return profile
 
-    return row
-
-def generate(n=100, seed=42):
+def generate(n=200, seed=42):
     random.seed(seed)
     return pd.DataFrame([make_profile(f"Participant_{i}") for i in range(n)])
 
 if __name__ == "__main__":
-    df = generate(100)
+    df = generate(200)
     df.to_csv("synthetic_ace3.csv", index=False)
     print(f"Wrote {len(df)} profiles. Total score: mean {df['ace3_total'].mean():.1f}, "
           f"range {df['ace3_total'].min()}-{df['ace3_total'].max()}")

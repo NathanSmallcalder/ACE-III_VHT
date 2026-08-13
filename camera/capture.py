@@ -4,17 +4,21 @@ import cv2
 import numpy as np
 from imutils.perspective import four_point_transform
 
-""" Shrints an Image down to a width of width """
+"""
+Detects paper edges and records for the pen_paper task
+"""
+
 def resizer(image, width=500):
+    # OpenCV image.shape returns (height, width, channels)
     h, w = image.shape[:2]
     height = int((h / w) * width)
     size = (width, height)
     return cv2.resize(image, size), size
 
-def _find_document_contour(frame):
-    """Locate the 4-point contour of a sheet of paper in `frame`, in the frame's own
-    coordinate space. Returns None if no quadrilateral is found."""
+def find_document_contour(frame):
+    # Downsample frame to accelerate processing and standardize noise scale
     img_re, size = resizer(frame)
+
     detail = cv2.detailEnhance(img_re, sigma_s=20, sigma_r=0.15)
     gray = cv2.cvtColor(detail, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -23,13 +27,15 @@ def _find_document_contour(frame):
     dilate = cv2.dilate(edge_image, kernel, iterations=1)
     closing = cv2.morphologyEx(dilate, cv2.MORPH_CLOSE, kernel)
 
-    contours, _ = cv2.findContours(closing, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(
+        closing, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
+    )
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
-
     min_area = 0.1 * size[0] * size[1]
     for contour in contours:
         if cv2.contourArea(contour) < min_area:
-            break  # sorted descending, so nothing bigger remains
+            break  # Sorted descending; remaining contours are guaranteed too small
+        
         peri = cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
         if len(approx) == 4:
@@ -38,27 +44,25 @@ def _find_document_contour(frame):
     return None
 
 
-def _rectify(frame, points=None):
-    """Upon finding a valid document the image is cropped around the paper"""
-    if points is None:
-        points = _find_document_contour(frame)
+def rectify(frame, points=None):
+    """Crops and flattens paper from the frame using a 4-point perspective transform.
+        Falls back to raw frame if no corner points are provided.
+    """
+    points = find_document_contour(frame)
     if points is None:
         return frame
     return four_point_transform(frame, points.astype(int))
 
 def record_video(output_path, stop_event, max_duration=None, camera_index=0):
-    """Record a headless webcam clip to `output_path` until `stop_event` is set
-    (from another thread) or `max_duration` seconds elapse, whichever comes first.
-    Meant to run on a background thread while the main thread drives TTS/timers,
-    the same split `capture_drawing` uses for photo capture."""
+    """Records a video """
     cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open camera {camera_index}")
-
+    # Fetch camera resolution
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-
+    # Ensure output directory exists
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     writer = cv2.VideoWriter(output_path, fourcc, 30, (width, height))
 
@@ -69,6 +73,7 @@ def record_video(output_path, stop_event, max_duration=None, camera_index=0):
             if not ok:
                 break
             writer.write(frame)
+            # If max_duration is set and elapsed time exceeds it, break loop to end thread
             if max_duration is not None and time.time() - start_time > max_duration:
                 break
     finally:
@@ -95,8 +100,9 @@ def capture_drawing(output_path, camera_index=0):
             ok, frame = cap.read()
             if not ok:
                 raise RuntimeError("Failed to read from camera")
-            points = _find_document_contour(frame)
-
+            # Check frame for paper boundary
+            points = find_document_contour(frame)
+            # Immediately capture upon detecting document corners
             if points is not None:
                 captured_frame, captured_points = frame, points
                 break
@@ -107,8 +113,11 @@ def capture_drawing(output_path, camera_index=0):
     finally:
         cap.release()
 
-    result = _rectify(captured_frame, captured_points)
+    # Rectify (crop/flatten) captured frame if points exist, then save to disk
+    result = rectify(captured_frame, captured_points)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     cv2.imwrite(output_path, result)
     return output_path
+
+

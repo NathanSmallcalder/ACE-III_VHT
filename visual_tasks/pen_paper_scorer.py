@@ -1,3 +1,4 @@
+import json
 import os
 
 import cv2
@@ -7,11 +8,11 @@ from LLM.vlm import build_client, describe_images, save_vlm_response
 
 load_dotenv()
 
-NUM_FRAMES = 8
+frames = 8
 FRAMES_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "frames", "pen_on_paper")
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
-PEN_PAPER_PROMPT = """You are watching frames, in chronological order.
+pen_paper_prompt = """You are watching frames, in chronological order.
 A pencil and a blank piece of paper are on a table. The patient was asked, in order, to:
   1. Place the paper on top of the pencil.
   2. Pick up the pencil but not the paper.
@@ -34,7 +35,7 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
 llm = build_client(0.0, 20000)
 
 
-def _extract_frames(video_path: str, output_dir: str, num_frames: int = NUM_FRAMES, motion_floor: float = 2.0) -> list[str]:
+def _extract_frames(video_path: str, output_dir: str, num_frames: int = frames, motion_floor: float = 2.0) -> list[str]:
     """Split the whole clip into `num_frames` picks spread across the
     highest-motion region, so the sample covers whichever part of the clip
     the patient actually moved in, however long the clip runs."""
@@ -69,7 +70,7 @@ def _extract_frames(video_path: str, output_dir: str, num_frames: int = NUM_FRAM
 
 def _describe_pen_paper(frame_paths: list[str]) -> dict:
     """Send the ordered frames to the VLM and parse its structured judgment."""
-    return describe_images(llm, PEN_PAPER_PROMPT, frame_paths)
+    return describe_images(llm, pen_paper_prompt, frame_paths)
 
 
 def score_pen_paper(data: dict) -> dict:
@@ -88,8 +89,13 @@ def score_pen_paper(data: dict) -> dict:
 def score_pen_paper_video(video_path: str) -> dict:
     """Score the pencil/paper three-stage-command task from a recorded clip:
     extract frames, judge each command via VLM, score against ACE-III criteria."""
-    if not video_path or not os.path.exists(video_path):
+    if not video_path:
         return {"total": 0}
+    if not os.path.exists(video_path):
+        try:
+            return score_pen_paper(json.loads(video_path))
+        except (json.JSONDecodeError, TypeError):
+            return {"total": 0}
 
     frame_paths = _extract_frames(video_path, FRAMES_DIR)
     data = _describe_pen_paper(frame_paths)

@@ -1,3 +1,5 @@
+import os
+
 import spacy
 from dotenv import load_dotenv
 
@@ -9,7 +11,7 @@ load_dotenv()
 # Load the English NLP model
 nlp = spacy.load("en_core_web_sm")
 
-_GRAMMAR_PROMPT = (
+prompt = (
     'You are checking a single sentence written by a patient during a cognitive '
     'assessment for grammar or spelling errors.\n\n'
     'Sentence: "{sentence}"\n\n'
@@ -19,7 +21,7 @@ _GRAMMAR_PROMPT = (
 
 
 def sentence_has_error_llm(sentence_text):
-    response = llm_strict.invoke(_GRAMMAR_PROMPT.format(sentence=sentence_text))
+    response = llm_strict.invoke(prompt.format(sentence=sentence_text))
     return response.content.strip().upper().startswith("Y")
 
 def classify_sentences(text):
@@ -60,7 +62,7 @@ def score_sentence_writing(text):
     return 0
 
 
-_TRANSCRIBE_PROMPT = """You are transcribing handwritten text from a photo, for a cognitive assessment.
+transcribe_prompt = """You are transcribing handwritten text from a photo, for a cognitive assessment.
 
 Transcribe exactly what is written, as plain text, preserving sentence boundaries and
 punctuation. If a word is illegible, write [illegible] in its place. Do not correct
@@ -73,18 +75,18 @@ Respond with a single JSON object and nothing else — no preamble, no explanati
 }
 """
 
-_transcribe_llm = build_client(0.0, 4000)
+transcribe_llm = build_client(0.0, 4000)
 
 def transcribe_writing(image_path: str) -> str:
     """Send the photographed writing sample to the VLM and return its plain-text
     transcription. Returns "" on any connection failure or malformed response."""
-    data = describe_images(_transcribe_llm, _TRANSCRIBE_PROMPT, [image_path])
+    data = describe_images(transcribe_llm, transcribe_prompt, [image_path])
     return data.get("transcription", "")
 
 def score_writing_image(image_path: str) -> dict:
     """Transcribe the photographed writing sample via VLM, then score it against
     the ACE-III sentence-writing criteria."""
-    text = transcribe_writing(image_path)
+    text = transcribe_writing(image_path) if os.path.exists(image_path) else image_path
     total = score_sentence_writing(text) if text else 0
     result = {"total": total}
     save_vlm_response("writing", image_path, {"transcription": text}, result)

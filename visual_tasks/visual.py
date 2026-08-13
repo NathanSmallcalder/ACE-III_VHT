@@ -1,17 +1,19 @@
 import os
+import threading
 import time
-
 from rapidfuzz import fuzz
 from langchain_core.messages import AIMessage, HumanMessage
-
-from LLM.dialogue import resolve_wrapper, rephrase_question
+from camera.capture import capture_drawing, record_video
+from LLM.dialogue import transition_que, rephrase_question, check_in, is_finished_drawing
 from marking.marking import parse_spoken_prompts
+from voice.capture import max_response
 
 draw_tasks = {"Clock", "Infinity Diagram", "Wire Cube", "Writing"}
-draw_timer = 180
+draw_timer = 180 #3 mins
+video_timer = 60 #1 min, hard cap on the recording
 
-GRID_COLS, GRID_ROWS = 3, 4
-GRID_ITEMS = [
+grid_columns, grid_rows = 3, 4
+grid_items = [
     "spoon", "book", "kangaroo",
     "penguin", "anchor", "camel",
     "harp", "rhinoceros", "barrel",
@@ -19,18 +21,22 @@ GRID_ITEMS = [
 ]
 
 def _is_draw_task(question: dict) -> bool:
-    text = question.get("question_text", "")
-    return any(text.startswith(prefix + ":") for prefix in draw_tasks)
+    """ Helper function to check if its a drawing task """
+    text = question.get("match_type", "")
+    target_types = ("clock", "cube", "infinity", "sentances")
+    return text in target_types
 
 def _is_video_task(question: dict) -> bool:
+    """Checks to see if its a video task (pen paper task)"""
     return question.get("question_text", "").startswith("Comprehension: Follow three-stage commands")
 
 def is_click_point_question(question: dict) -> bool:
+    """Checks to see if the question is pointing at pictures"""
     return question.get("question_text", "").startswith("Comprehension: Which picture")
 
 def task_type(question: dict) -> str:
-    """Coarse task-type tag, independent of clinical domain, used to detect when
-    the assessment moves to a different kind of interaction."""
+    """Categorizes a question into a task-type tag ('draw', 'video', 'click', or 'spoken').
+    Used to detect transition between tasks"""
     if _is_draw_task(question):
         return "draw"
     if _is_video_task(question):
@@ -41,49 +47,65 @@ def task_type(question: dict) -> str:
 
 
 def run_click_task(state, question: dict, tts, session_config: dict, next_question: dict | None, gui) -> dict:
+    """
+    Handles click selection tasks.
+    """
+    # Extract spoken prompts or fallback to standard question text
     spoken = parse_spoken_prompts(question)
     text = spoken[0] if spoken else question["question_text"]
 
+    # Determine assessor vocal output based on system state
     if state.get("needs_repeat"):
         spoken_text = rephrase_question(text)
     elif state.get("previous_task_signature") != (state["current_domain"], "click"):
-        spoken_text = f"You need to click on the screen now. {text}"
+        # Add a transition instruction if switching into a click-based task
+        spoken_text = f"You will need to click on the screen now. {text}"
     else:
         spoken_text = text
+
+    # Log and speak the instruction to the patient
     print("Assessor:", spoken_text)
     gui.add_message("assessor", spoken_text)
     tts.speak(spoken_text)
 
+    # Determine if the click UI canvas should stay open after this question finishes
     image_path = question.get("image")
     keep_open = bool(
         next_question and is_click_point_question(next_question) and next_question.get("image") == image_path
     )
-    clicked_index = gui.launch_click_canvas(image_path, keep_open, GRID_COLS, GRID_ROWS) if image_path else None
+    # Display the click grid UI and wait for interaction
+    clicked_index = gui.launch_click_canvas(image_path, keep_open, grid_columns, grid_rows) if image_path else None
 
+    # Handle scenario where the user fails to click or times out
     if clicked_index is None:
         return {"needs_repeat": True}
 
-    clicked_item = GRID_ITEMS[clicked_index]
+    # Map grid coordinate index to item name
+    clicked_item = grid_items[clicked_index]
     print("Patient (pointed to):", clicked_item)
     gui.add_message("patient", clicked_item)
     return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=clicked_item)]}
 
 
 def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui) -> dict:
+    """
+    Handles standard visual tasks, drawing tasks (camera capture), 
+    and multi-stage command tasks (video capture).
+    """
+
     spoken = parse_spoken_prompts(question)
     text = spoken[0] if spoken else question["question_text"]
-
-    # Draw tasks with a reference image show it inside gui.launch_camera_capture,
-    # alongside the status panel — showing it here first would just get
-    # replaced the moment that panel builds its own stage frame.
+    # Display reference stimulus image in GUI unless it's a drawing task 
+    # (drawing tasks render the stimulus inside their own specialized window layout)
     if question.get("image") and not _is_draw_task(question):
         gui.show_stimulus_image(question["image"])
 
+    # Prepare speech text and dynamic conversational transitions
     wrapper = ""
     if state.get("needs_repeat"):
         spoken_text = rephrase_question(text)
     else:
-        wrapper = resolve_wrapper(
+        wrapper = transition_que( # Transitions ques
             state, session_config["patient"]["name"], state["current_domain"],
             task_type(question), state.get("sub_question_index", 0),
         )
@@ -100,23 +122,64 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
 
         task_name = question["question_text"].split(":")[0].lower().replace(" ", "_")
         output_path = os.path.join(os.path.dirname(__file__), f"{task_name}.png")
-        gui.launch_camera_capture(output_path, audio, tts, duration=draw_timer,
-                                   reference_image_path=question.get("image"))
+
+        gui.start_draw_task(draw_timer, question.get("image"))
+        deadline = time.time() + draw_timer
+        last_spoken = ""
+        finished = False
+        while True:
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                break
+            heard = audio.capture_response(
+                on_tick=gui.tick_draw_panel,
+                max_duration=max(min(remaining, max_response), 3),
+            )
+            if (heard and fuzz.partial_ratio(heard.lower(), last_spoken.lower()) < 75
+                    and is_finished_drawing(heard)):
+                finished = True
+                break
+            if deadline - time.time() > 15:  # dont check in 15 seconds before the end
+                last_spoken = check_in()
+                tts.speak(last_spoken)
+        gui.end_draw_panel(finished)
+
+        tts.speak("Okay, now show me.")
+        capture_drawing(output_path)
         return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=output_path)]}
 
     if _is_video_task(question):
         if wrapper:
             tts.speak(wrapper)
+
         practice, scored_prompts = (spoken[0], spoken[1:]) if len(spoken) > 1 else (None, spoken)
         if practice:
             tts.speak(practice)
-            audio.capture_response(on_tick=gui.pump)  # practice trial, not scored
+            audio.capture_response(on_tick=gui.pump)  # practice trial, not scored did not enfore the
+            # first question being a practice run
         output_path = os.path.join(os.path.dirname(__file__), "..", "data", "videos", "pen_paper.mp4")
-        gui.launch_video_capture(output_path, scored_prompts, tts)
+
+        stop_event = threading.Event()
+        recorder = threading.Thread(
+            target=record_video, args=(output_path, stop_event),
+            kwargs={"max_duration": video_timer}, daemon=True,
+        )
+        recorder.start()
+        gui.start_video_panel()
+        try:
+            for prompt in scored_prompts:
+                gui.set_video_prompt(prompt)
+                tts.speak(prompt)
+                gui.wait(8)
+        finally:
+            stop_event.set()
+            recorder.join(timeout=5)
+        gui.end_video_panel()
         return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=output_path)]}
 
     tts.speak(spoken_text)
 
+    # Retry audio capture up to 5 times to ignore silence or TTS echo feedback
     for _ in range(5):
         user_input = audio.capture_response(on_tick=gui.pump)
         if not user_input:

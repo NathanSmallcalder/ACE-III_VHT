@@ -1,20 +1,18 @@
 import json
-
 from langchain_core.messages import AIMessage, HumanMessage
-
-from graph import graph, configure, ACE_DATA
-from data_loader import get_session_config
+from graph import graph, configure
+from data_loader import get_session_config, ace_json
 from virtual_avatar.avatar import furhat_connect
 from voice.tts import TTSEngine
-from voice.capture import AudioCapture, FLUENCY_SILENCE_DURATION
+from voice.capture import AudioCapture, fluency_task_silence
 from ui.session_window import SessionWindow
 
-DOMAIN_ORDER = list(ACE_DATA.keys())
+DOMAIN_ORDER = list(ace_json.keys())
 
 initial_state = {
     "messages": [],
-    "current_domain": DOMAIN_ORDER[0],
-    "question_index": 0,
+    "current_domain": "Visuospatial", #DOMAIN_ORDER[0],
+    "question_index":0,
     "sub_question_index": 0,
     "question_score": 0,
     "scores": {domain: 0 for domain in DOMAIN_ORDER},
@@ -77,7 +75,7 @@ if __name__ == "__main__":
 
     gui.set_loading_status("Initializing audio capture...")
     audio = AudioCapture()
-    audio_fluency = AudioCapture(silence_timeout=FLUENCY_SILENCE_DURATION, model=audio.model)
+    audio_fluency = AudioCapture(silence_timeout=fluency_task_silence, model=audio.model)
 
     gui.show_session_layout()
 

@@ -8,7 +8,7 @@ load_dotenv()
 # Scoring criterion (ACE-III): "A score of 1 is given if two infinity loops
 # are drawn and overlap. Both infinity loops must come to a point/cross and
 # do not look like circles."
-INFINITY_PROMPT = """You are analysing a hand-drawn attempt at copying an interlocking infinity-loop diagram, for clinical scoring purposes.
+infinity_prompt = """You are analysing a hand-drawn attempt at copying an interlocking infinity-loop diagram, for clinical scoring purposes.
 
 The target diagram is two separate figure-eight (infinity symbol, "∞") shapes, placed side by side
 so they overlap in the middle. Each figure-eight shape on its own has two loops that meet at a central waist
@@ -30,7 +30,7 @@ llm = build_client(0.0, 20000)
 
 def _describe_infinity(drawn_path: str) -> dict:
     """Send the patient's infinity-diagram drawing to the VLM and parse its structured description."""
-    return describe_images(llm, INFINITY_PROMPT, [drawn_path])
+    return describe_images(llm, infinity_prompt, [drawn_path])
 
 
 def score_infinity(data: dict) -> dict:

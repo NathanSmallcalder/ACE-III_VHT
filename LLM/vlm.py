@@ -12,19 +12,18 @@ from langchain_core.messages import HumanMessage
 
 load_dotenv()
 
-BASE_URL = "http://localhost:1234/v1"
-API_KEY  = "lm-studio"
-MODEL    = "qwen/qwen3-vl-4b"
+base_url = "http://localhost:1234/v1"
+api_key  = "lm-studio"
+model    = "qwen/qwen3-vl-8b"
 
 directory = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "vlm_responses")
 
-MIN_DIMENSION = 1024  #  upscale before sending to the VLM
 
 def build_client(temperature: float, max_tokens: int):
     return ChatOpenAI(
-        base_url=BASE_URL,
-        api_key=API_KEY,
-        model=MODEL,
+        base_url=base_url,
+        api_key=api_key,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         stop=["<|im_end|>", "<|endoftext|>"],
@@ -32,9 +31,9 @@ def build_client(temperature: float, max_tokens: int):
 
 def encode_image(image_path: str) -> str:
     """Encodes an image, upscaling it first if its smaller dimension is below
-    MIN_DIMENSION so the VLM has more pixels to read fine detail (digits, hand tips) from."""
+       1024 so the VLM has more pixels to read fine detail (digits, hand tips) from."""
     img = Image.open(image_path)
-    scale = MIN_DIMENSION / min(img.size)
+    scale = 1024 / min(img.size)
     if scale > 1:
         img = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
 

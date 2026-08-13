@@ -1,21 +1,18 @@
 # LLM/LLM.py
 from langchain_openai import ChatOpenAI
 
-BASE_URL = "http://localhost:1234/v1"
-API_KEY  = "lm-studio"
-MODEL    = "google/gemma-4-e4b"
+base_url = "http://localhost:1234/v1"
+api_key  = "lm-studio"
+model    = "google/gemma-4-e4b"
 
-"""
-Bulds the LLM
-"""
 def _build(temperature: float, max_tokens: int) -> ChatOpenAI:
     """
     Bulds the LLM - Currently Gemma-4-e4b
     """
     return ChatOpenAI(
-        base_url=BASE_URL,
-        api_key=API_KEY,
-        model=MODEL,
+        base_url=base_url,
+        api_key=api_key,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         stop=["<|im_end|>", "<|endoftext|>"],

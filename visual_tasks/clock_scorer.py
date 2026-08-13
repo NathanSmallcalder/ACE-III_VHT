@@ -6,7 +6,7 @@ from LLM.vlm import build_client, describe_images, save_vlm_response
 load_dotenv()
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
-CLOCK_PROMPT = """You are analysing a hand-drawn clock image for clinical scoring purposes.
+clock_prompt = """You are analysing a hand-drawn clock image for clinical scoring purposes.
 Describe only what is visible in the drawing. Where a field does not apply
 (e.g. hand fields when no hands are drawn), use "none".
 
@@ -39,11 +39,6 @@ Rules for hands: a hand's direction is the number its TIP points toward from the
 """
 
 llm = build_client(0.0, 20000)
-
-
-def _describe_clock(image_path: str) -> dict:
-    """Send the clock drawing to the VLM and parse its structured description."""
-    return describe_images(llm, CLOCK_PROMPT, [image_path])
 
 def score_clock(data: dict) -> dict:
     """Score against the ACE-III / M-ACE clock criteria (0-5).
@@ -80,8 +75,8 @@ def score_clock(data: dict) -> dict:
         numbers_score = 1
 
     # ── Hands ──
-    HOUR_TARGET, MINUTE_TARGET = 5, 2  # ten past five: hour→5, minute→2
-    TARGET = {HOUR_TARGET, MINUTE_TARGET}
+    hour_target, min_target = 5, 2  # ten past five: hour→5, minute→2
+    target = {hour_target, min_target}
 
     hand_count  = get("hand_count")
     same_length = get("hands_same_length")
@@ -100,11 +95,11 @@ def score_clock(data: dict) -> dict:
         hands_score = 0
     else:
         hand_positions = {x for x in [h1, h2] if x is not None}
-        both_numbers_correct = hand_positions == TARGET
+        both_numbers_correct = hand_positions == target
         # Correct lengths means the hands genuinely differ in length AND the
         # shorter one is on the hour target, the longer on the minute target.
         lengths_differ  = same_length == "no"
-        length_correct  = lengths_differ and h1 == HOUR_TARGET and h2 == MINUTE_TARGET
+        length_correct  = lengths_differ and h1 == hour_target and h2 == min_target
 
         if both_numbers_correct and length_correct:
             # "2 points if both hands are drawn, lengths are correct and placed
@@ -114,7 +109,7 @@ def score_clock(data: dict) -> dict:
             # "1 point if both hands are drawn and placed on the correct numbers
             #  but lengths are incorrect"
             hands_score = 1
-        elif lengths_differ and (h1 == HOUR_TARGET or h2 == MINUTE_TARGET):
+        elif lengths_differ and (h1 == hour_target or h2 == min_target):
             # "1 point if both hands are drawn but only one hand is placed on the
             #  correct number and drawn with correct length"
             # lengths_differ guard: with even lengths the shorter/longer slots are
@@ -137,7 +132,7 @@ def score_clock(data: dict) -> dict:
 
 def score_clock_image(image_path: str) -> dict:
     """Describe a hand-drawn clock image via VLM and score it against the ACE-III clock criteria."""
-    data = _describe_clock(image_path)
+    data = describe_images(llm, clock_prompt, [image_path])
     result = score_clock(data)
     save_vlm_response("clock", image_path, data, result)
     return result
@@ -147,7 +142,7 @@ if __name__ == "__main__":
     image_path = os.path.join(os.path.dirname(__file__), "clock.png")
     print(f"Scoring: {os.path.basename(image_path)}")
 
-    data = _describe_clock(image_path)
+    data = describe_images(llm, clock_prompt, [image_path])
 
     print("\n── Parsed Fields ────────────────────────────────────────────")
     for field in [

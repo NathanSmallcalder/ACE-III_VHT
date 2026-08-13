@@ -7,9 +7,9 @@ def introduce(patient_name: str) -> str:
     result = llm_warm.invoke([
         SystemMessage(content=(
             "You are a warm clinical assessor about to begin the ACE-III cognitive "
-            "assessment with a patient. Reply with a friendly introduction"
+            "assestion sment with a patient. Reply with a friendly introduction"
             "greet the patient by name and let them know you'll be asking "
-            "some questions now. Do not explain the test mechanics, do not ask a question "
+            "some questions now. Do not explain the test mechanics, do not ask a ques"
             "yourself, do not use quotes. inform the patient that they will need a pen and a few peices of paper in front of them"
         )),
         HumanMessage(content=f"Patient's name: {patient_name}")
@@ -30,6 +30,7 @@ def acknowledge(last_response: str) -> str:
             "Patient: Wednesday, I think.\n-> Alright, thanks.\n"
             "Patient: The twelfth.\n-> Got it, thank you.\n"
             "Patient: I'm not sure.\n-> That's alright, thank you.\n"
+            "Patient: Twentyfour\n -> alright, moving on"
         )),
         HumanMessage(content=f"Patient said: {last_response}")
     ])
@@ -45,12 +46,12 @@ def transition() -> str:
             "You are a warm clinical assessor moving from one part of a cognitive "
             "test to a different kind of task. Reply with a short, natural spoken "
             "cue (roughly 5-12 words) telling the patient you're moving on to "
-            "something a little different, WITHOUT saying what it is, WITHOUT "
+            "something a little different, without saying what it is, without "
             "naming any clinical domain or task (never say memory, attention, "
-            "language, drawing, clock, etc.), and without asking a question. "
+            "language, etc.), and without asking a question. "
             "Your reply is always a statement, never ends with '?'. Do not use quotes. "
             "Vary your wording each time -- do not default to the same stock phrase, "
-            "and avoid the cliche 'shift gears'.\n\n"
+            "\n\n"
             "Examples:\n"
             "-> Okay, now we'll try something a little different.\n"
             "-> Let's move on to something else now.\n"
@@ -63,11 +64,7 @@ def transition() -> str:
 
 
 def transition_que(state, patient_name: str, domain: str, task_type: str, sub_index: int) -> str:
-    """Single source of truth for the spoken wrapper prepended to a fresh
-    question: the one-time session intro, a transition cue when the domain or
-    task modality just changed, a plain acknowledgment of the previous answer,
-    or nothing (mid-question follow-up turns). Callers still handle
-    needs_repeat/handler-reprompt turns themselves before falling back here."""
+    """Transitional que when changing domains or achknowledgement of last question"""
     if not state["messages"]:
         return introduce(patient_name)
 
@@ -75,7 +72,7 @@ def transition_que(state, patient_name: str, domain: str, task_type: str, sub_in
         return ""
 
     previous_signature = state.get("previous_task_signature")
-    """Transition Task to Paper"""
+    """Transition Task to Paper or click on screen"""
     if previous_signature is not None and previous_signature != (domain, task_type):
         return transition()
     if domain == "Visuospatial" and task_type == "click" and previous_signature != (domain, task_type):
@@ -153,7 +150,7 @@ def check_in() -> str:
 # Patient Needs a Repeat
 # Patient is Off Topic
 # Patient's Answer is Incomplete
-LABELS = {"answer", "repeat", "off_topic", "incomplete"}
+labels = {"answer", "repeat", "off_topic", "incomplete"}
 
 def classify_turn(last_response: str, question_text: str = "") -> str:
     out = llm_strict.invoke([
@@ -183,12 +180,13 @@ def classify_turn(last_response: str, question_text: str = "") -> str:
             "Q: Which street is this?\nPatient: Um, Hospital Road.\n-> answer\n"
             "Q: What day is it?\nPatient: What? Can you repeat that?\n-> repeat\n"
             "Q: What month is it?\nPatient: Um, I think, I think it is...\n-> incomplete"
+            "Q: What letter is this\nPatient: No..\n-->repeat"
         )),
         HumanMessage(content=f"Question asked: {question_text}\nPatient said: {last_response}")
     ])
 
     content = out.content.strip().lower()
-    matches = re.findall(r"\b(" + "|".join(LABELS) + r")\b", content)
+    matches = re.findall(r"\b(" + "|".join(labels) + r")\b", content)
     if matches:
         return matches[-1]
     return "repeat"

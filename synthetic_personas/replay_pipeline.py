@@ -1,18 +1,5 @@
 """
-Replays a pre-generated synthetic-persona transcript (from evaluate_synthetic_personas.py)
-through the REAL graph.py state machine, injecting the transcript's answers in place of
-live Whisper audio capture / camera / click UI. This exercises the actual routing and
-scoring logic (classify_turn, _HANDLERS, reprompt handling, VISUAL_SCORERS, ...) end to
-end against a canned transcript instead of a live session.
-
-Every item should score for real: spoken items and the 4 click items go through the
-normal audio/click path; Infinity/Cube/Clock have real reference image paths already in
-the transcript; Writing and pencil/paper Comprehension reply with real sentence text /
-the real scorer's own JSON shape respectively, so their scorers are patched below
-(_patch_visual_task_scoring) to score that directly instead of transcribing a photo or
-video that doesn't exist.
-
-Usage: python -m synthetic_personas.replay_pipeline synthetic_transcripts/NSHD100000_healthy.json
+python -m synthetic_personas.replay_pipeline synthetic_transcripts/NSHD100000_healthy.json
 """
 import argparse
 import json
@@ -20,8 +7,7 @@ import json
 from langchain_core.messages import AIMessage, HumanMessage
 
 import graph
-from data_loader import get_session_config
-from visual_tasks import pen_paper_scorer, writing as writing_scorer
+from data_loader import ace_json, get_session_config
 from visual_tasks.visual import is_click_point_question
 
 
@@ -69,6 +55,9 @@ class NullGUI:
     def close(self):
         pass
 
+    def set_on_close(self, callback):
+        pass
+
 
 def _visual_and_click_question_texts():
     """question_text of every real question routed through run_visual_task/run_click_task
@@ -76,9 +65,9 @@ def _visual_and_click_question_texts():
     from the audio queue or they'd just sit there unconsumed forever."""
     return {
         question["question_text"]
-        for domain in graph.ACE_DATA.values()
+        for domain in ace_json.values()
         for question in domain["questions"]
-        if question.get("match_type") == "visual" or is_click_point_question(question)
+        if question.get("match_type") in ("clock", "pen_paper", "cube", "infinity", "sentances") or is_click_point_question(question)
     }
 
 def _flatten(transcript, domains, skip_questions):
@@ -104,47 +93,26 @@ def _make_visual_stubs(transcript):
     def stub_run_visual_task(state, question, tts, audio, session_config, gui):
         text = question["question_text"]
         answer = by_question.get(text, "")
-        print("Assessor (visual):", text)
-        print("Patient (canned):", answer)
+        print("Assessor:", text)
+        print("Patient :", answer)
         return {"messages": [AIMessage(content=text), HumanMessage(content=answer)]}
 
     def stub_run_click_task(state, question, tts, session_config, next_question, gui):
         text = question["question_text"]
         answer = by_question.get(text, "")
-        print("Assessor (click):", text)
-        print("Patient (canned):", answer)
+        print("Assessor:", text)
+        print("Patient:", answer)
         return {"messages": [AIMessage(content=text), HumanMessage(content=answer)]}
 
     return stub_run_visual_task, stub_run_click_task
-
-
-def _patch_visual_task_scoring():
-    """The real Writing/pencil-paper scorers expect a photo/video to analyze via VLM.
-    The replay's answers for those two are already real text/JSON (persona_scorer.py
-    asks the LLM to reply with actual sentences / the real scorer's own JSON shape), so
-    patch the underlying scorers to score that directly instead of trying to open a
-    nonexistent file. """
-    def score_writing_image(response_text):
-        total = writing_scorer.score_sentence_writing(response_text) if response_text else 0
-        return {"total": total}
-
-    def score_pen_paper_video(response_text):
-        try:
-            data = json.loads(response_text)
-        except (json.JSONDecodeError, TypeError):
-            data = {}
-        return pen_paper_scorer.score_pen_paper(data)
-
-    writing_scorer.score_writing_image = score_writing_image
-    pen_paper_scorer.score_pen_paper_video = score_pen_paper_video
 
 
 def run_replay(transcript_path):
     with open(transcript_path) as f:
         transcript = json.load(f)
 
-    _patch_visual_task_scoring()
     session_config = get_session_config()
+    session_config['patient']['name'] = f"{transcript.get('participant_id')}_{transcript.get('cognitive_status')}"
 
     skip_questions = _visual_and_click_question_texts()
     audio = ReplayAudio(_flatten(transcript, ["Attention", "Memory", "Language", "Visuospatial"], skip_questions))
@@ -158,7 +126,7 @@ def run_replay(transcript_path):
     graph.run_visual_task = stub_visual
     graph.run_click_task = stub_click
 
-    domain_order = list(graph.ACE_DATA.keys())
+    domain_order = list(ace_json.keys())
     initial_state = {
         "messages": [],
         "current_domain": domain_order[0],
@@ -168,7 +136,7 @@ def run_replay(transcript_path):
         "scores": {domain: 0 for domain in domain_order},
         "domain_queue": [d for d in domain_order[1:] if d != "Fluency"],  # Fluency is reached via advance_node's mid-Memory detour
         "complete": False,
-        "needs_repeat": False,
+        "needs_repeat": False, 
         "repeat_count": 0,
         "reprompt_kind": None,
         "turn_progress": 0,

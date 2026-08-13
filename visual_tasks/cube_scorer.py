@@ -5,7 +5,7 @@ from LLM.vlm import build_client, describe_images, save_vlm_response
 load_dotenv()
 
 # ── VLM prompt ────────────────────────────────────────────────────────────────
-CUBE_PROMPT = """You are analysing a hand-drawn attempt at copying a wire-frame cube, for clinical scoring purposes.
+cube_prompt = """You are analysing a hand-drawn attempt at copying a wire-frame cube, for clinical scoring purposes.
 
 The target is a 3D wire-frame cube, drawn in any of the usual conventions (e.g. two offset squares connected
 corner-to-corner, or an isometric box with a front/top/side face) — a complete wire-frame cube has 12 edges
@@ -20,6 +20,8 @@ Describe only what is visible in the drawing. Respond with a single JSON object 
 {
   "edges_present": "<integer 0-12 — how many of the cube's 12 canonical edges (4 on the front face, 4 on the back face, 4 connecting the two) are represented by a line in the drawing, ignoring any extra stray marks>",
   "general_cube_shape": "<yes/no — Is a general cube shape maintained, regardless of exact style or proportions>",
+
+  "notes": "<one short sentence flagging anything unusual not captured above, or none>"
 }
 """
 
@@ -27,7 +29,7 @@ llm = build_client(0.0, 20000)
 
 def _describe_cube(drawn_path: str) -> dict:
     """Send the patient's cube drawing to the VLM and parse its structured description."""
-    return describe_images(llm, CUBE_PROMPT, [drawn_path])
+    return describe_images(llm, cube_prompt, [drawn_path])
 
 def score_cube(data: dict) -> dict:
     def get(field):
@@ -43,7 +45,6 @@ def score_cube(data: dict) -> dict:
     cube_shape = get("general_cube_shape") == "yes"
 
     if edges_present is not None and edges_present == 12:
-
         total = 2
     elif cube_shape:
         total = 1

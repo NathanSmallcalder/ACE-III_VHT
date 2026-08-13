@@ -64,7 +64,7 @@ def configure(session_config, tts_engine, audio, audio_fluency, gui):
             question["answers"] = resolve_dynamic_answers(original_answers, session_config)
 
 
-def _finalize_score(state, question, domain, q_index, score, new_sub) -> dict:
+def finalize_score(state, question, domain, q_index, score, new_sub) -> dict:
     """Apply question/domain caps, add to the running score, and clear all
     reprompt/progress state. Every handler and the default scoring path end
     here"""
@@ -90,45 +90,49 @@ def _finalize_score(state, question, domain, q_index, score, new_sub) -> dict:
     }
 
 
-def _reprompt(kind: str) -> dict: 
-    """Trigger a handler-specific reprompt turn.
-       Called in Attention Season question and Memory personal names questions.
-       for specific  "what was their last name" / "who was the previous one". , "could it be another season instances"
-    """
+def reprompt(kind: str) -> dict: 
+    # Triggers a reprompt when the user asks vague follow-ups.
+    # Used in Attention Season & Memory Name questions like:
+    # - "What was their last name?"
+    # - "Who was the previous one?"
+    # - "Could it be another season?"
     return {"needs_repeat": True, "repeat_count": 0, "reprompt_kind": kind}
 
 
-def _handle_person_name(state, question, response, domain, q_index, sub_index):
+def handle_person_name(state, question, response, domain, q_index, sub_index):
     """
-    reprompt_kind carries state across turns: "leader" = 3rd attempt (checks outgoing
-    politician's name/surname), "name" = 2nd attempt (re-scores after asking for surname).
-    First attempt below: score normally, else reprompt for surname or outgoing leader as fallback.
+    scores normally, else reprompt for surname or outgoing leader as fallback
+    if reprompt_kind is either leader or name then score instead.
     """
     outgoing = question.get("outgoing_leader")
+
+    
+    # Check if they named the outgoing leader
     if state.get("reprompt_kind") == "leader":
         score = score_person_name(response, [outgoing, outgoing.split()[-1]]) if outgoing else 0
-        return _finalize_score(state, question, domain, q_index, score, 0)
-    if state.get("reprompt_kind") == "name":
-        return _finalize_score(state, question, domain, q_index, score_question(response, question), 0)
+        return finalize_score(state, question, domain, q_index, score, 0)
+    if state.get("reprompt_kind") == "name": #Re-score after we asked for their surname
+        return finalize_score(state, question, domain, q_index, score_question(response, question), 0)
     score = score_question(response, question)
     if score:  
-        return _finalize_score(state, question, domain, q_index, score, 0)
+        return finalize_score(state, question, domain, q_index, score, 0)
 
-    # ask for the surname before giving up on the question.
+    # Standard scorer accepts bare surname but fails on wrong first name
     if len(clean_response(response).split()) == 1:
-        return _reprompt("name")
+        return reprompt("name")
 
     # Wrong (and not just incomplete) — if there's been a recent change of
     # leader, probe for the outgoing politician's name as an alternate point.
     if outgoing:
-        return _reprompt("leader")
-    return _finalize_score(state, question, domain, q_index, 0, 0)
+        return reprompt("leader")
+    # Out of reprompts & wrong answer -> 0 points
+    return finalize_score(state, question, domain, q_index, 0, 0)
 
 
-def _reprompt_text_person_name(state, question, text):
+def reprompt_text_person_name(state, question, text):
     """
     Picks the spoken follow-up text based on which reprompt_kind was just set
-    by _handle_person_name: "name" asks for the surname, "leader" asks for
+    by handle_person_name: "name" asks for the surname, "leader" asks for
     the outgoing politician. Returns None on a normal (non-reprompt) turn.
     """
     if state.get("reprompt_kind") == "name":
@@ -138,107 +142,114 @@ def _reprompt_text_person_name(state, question, text):
     return None
 
 
-def _handle_registration(state, question, response, domain, q_index, sub_index):
+def handle_registration(state, question, response, domain, q_index, sub_index):
     """
-    Repeats the word list up to max_trials times so the patient can learn it,
-    but only trial 1's score counts (question_score carries it across turns).
-    Stops early once all_correct; final call scores with first_attempt_score, ignoring later trials.
+    Repeats a word list so the patient can learn it.
+    Only trial 1st counts toward the real score—later trials are just practice.
+    Stops early if they get 100% right on any trial.
     """
     max_trials = question.get("max_attempts", 3)
     trial = state.get("turn_progress", 0)
+    # Score current trial, but lock in the trial 1 score for the final result
     attempt_score = score_question(response, question)
     first_attempt_score = attempt_score if trial == 0 else state.get("question_score", 0)
     all_correct = attempt_score == question["score_cap"]
     trial += 1
     print(f"Registration trial {trial}/{max_trials}: {attempt_score}/{question['score_cap']} this trial "
           f"(first-attempt score: {first_attempt_score})")
-
+    # Not perfect yet and still have tries left? Reprompt for another trial.
     if not all_correct and trial < max_trials:
         return {
             "needs_repeat": True, "repeat_count": 0,
             "turn_progress": trial, "reprompt_kind": "registration",
             "question_score": first_attempt_score,
         }
+    # Done (either got max score or ran out of tries) then end with 1st try's score
+    return finalize_score({**state, "question_score": 0}, question, domain, q_index, first_attempt_score, 0)
 
-    return _finalize_score({**state, "question_score": 0}, question, domain, q_index, first_attempt_score, 0)
 
-
-def _reprompt_text_registration(state, question, text):
+def reprompt_text_registration(state, question, text):
     """
     Repeat the same question for registration question.
     """
     return text if state.get("reprompt_kind") == "registration" else None
 
 
-def _handle_season(state, question, response, domain, q_index, sub_index):
+def handle_season(state, question, response, domain, q_index, sub_index):
     """
     Adjacent-season check: e.g. "spring" said during a summer/spring boundary
     window — reprompt once ("could it be another season?") instead of scoring
-    wrong outright. sub_index scoring only fires for this one sub-answer slot.
+    wrong outright. sub_index scoring only fires for this one sub-answer slot
+    set +-7 days.
     """
     expected_answers = question["answers"]
     if (
         state.get("reprompt_kind") != "season" and season_adjacent
         and score_fuzzy(response, [season_adjacent]) and not score_fuzzy(response, [season_actual])
     ):
-        return _reprompt("season")
+        return reprompt("season")
 
     score = score_question(response, question, sub_index=sub_index) if sub_index < len(expected_answers) else 0
-    return _finalize_score(state, question, domain, q_index, score, sub_index + 1)
+    return finalize_score(state, question, domain, q_index, score, sub_index + 1)
 
-def _reprompt_text_season(state, question, text):
+def reprompt_text_season(state, question, text):
     """
     Reprompt for season slightly off by patient.
     """
     return "Could it be another season?" if state.get("reprompt_kind") == "season" else None
 
-def _handle_sub_score_bands(state, question, response, domain, q_index, sub_index):
+def handle_sub_score_bands(state, question, response, domain, q_index, sub_index):
     """
-    Called for Language's word repetition question (caterpillar, eccentricity,
-    unintelligible, statistician) 
+    Handles multi-word repetition tests (e.g., caterpillar, eccentricity, etc.).
+    Steps through words one by one, tracks correct reps, then maps the final total 
+    to a score band.
     """
     expected_answers = question["answers"]
+    # Score the current word if we haven't run past the answer list
     word_score = score_question(response, question, sub_index=sub_index) if sub_index < len(expected_answers) else 0
     correct_so_far = state.get("turn_progress", 0) + (1 if word_score else 0)
     new_sub = sub_index + 1
-
+    # Move to the next sub-question 
     if new_sub < len(expected_answers):
         return {
             "needs_repeat": False, "repeat_count": 0,
             "sub_question_index": new_sub, "turn_progress": correct_so_far,
         }
+    # All words done -> convert total correct words into the final band score
     score = scaled_count(correct_so_far, question["sub_score_bands"])
-    return _finalize_score(state, question, domain, q_index, score, new_sub)
+    return finalize_score(state, question, domain, q_index, score, new_sub)
 
-def _handle_name_address_trials(state, question, response, domain, q_index, sub_index):
+def handle_name_address_trials(state, question, response, domain, q_index, sub_index):
     """
-    Repeats the name/address up to 3 times for patient learning only the
-    final trial's score is kept, earlier attempts are discarded, not accumulated.
+    Repeats name & address (up to 3 times) for learning. 
+    Only the final trial's score counts—earlier tries are just practice and get thrown out.
     """
     total_trials = question.get("trials", 3)
+    # Score the current attempt
     trial = state.get("turn_progress", 0) + 1
     attempt_score = score_question(response, question)
     print(f"Name & address trial {trial}/{total_trials}: {attempt_score}/{question['score_cap']} this trial")
-
+    # if remaining trails ask again
     if trial < total_trials:
         return {"needs_repeat": True, "repeat_count": 0, "turn_progress": trial, "reprompt_kind": "trial"}
+    # Score and move on 
+    return finalize_score(state, question, domain, q_index, attempt_score, 0)
 
-    return _finalize_score(state, question, domain, q_index, attempt_score, 0)
-
-def _reprompt_text_name_address(state, question, text):
+def reprompt_text_name_address(state, question, text):
     """
-    Re-speaks just the name/address stimulus on trial 2 and 3 (same words
-    each time, by design — not a paraphrase), skipping the trial-1-only
-    preamble ("We will do this three times..."). Returns None on the
-    final/scoring turn.
+    Re-speaks the name/address stimulus on practice trials (2 & 3).
+    Ditches the 1st-trial preamble ("We will do this three times...") 
+    and returns None once we hit the final scoring turn.
     """
+    # Only run this if in the middle of learning trials
     if state.get("reprompt_kind") != "trial":
         return None
+    # get the target phrase from instructions, or fall back to original text    
     quotes = re.findall(r"Speak:\s*'(.*?)'", question.get("instructions", ""))
     stimulus = quotes[-1] if quotes else text
     return f"Let's do that again. {stimulus}"
 
-def _recognition_recalled(question, sub_index, state):
+def recognition_recalled(question, sub_index, state):
     """True if this recognition element's tokens were already fully credited
     in the linked delayed-recall question, so it doesn't need to be re-asked."""
     element_indices = question.get("element_recall_indices")
@@ -248,17 +259,18 @@ def _recognition_recalled(question, sub_index, state):
     return all(idx < len(recalled) and recalled[idx] for idx in element_indices[sub_index])
 
 
-def _handle_recognition(state, question, response, domain, q_index, sub_index):
+def handle_recognition(state, question, response, domain, q_index, sub_index):
     """
-    Auto-award 1pt if this element's were already credited in delayed
-    recall (skip re-asking, see _recognition_recalled); otherwise score the
-    multiple-choice response normally against this sub-answer's expected value.  
+    Auto-awards 1 point if the patient already recalled this item earlier.
+    Otherwise, scores their multiple-choice answer normally.
     """
     new_sub = sub_index + 1
-    if _recognition_recalled(question, sub_index, state):
-        return _finalize_score(state, question, domain, q_index, 1, new_sub)
+    # if they got it right during delayed recall then score and move on
+    if recognition_recalled(question, sub_index, state):
+        return finalize_score(state, question, domain, q_index, 1, new_sub)
+    # Otherwise, score the multiple-choice response
     score = score_question(response, question, sub_index=sub_index)
-    return _finalize_score(state, question, domain, q_index, score, new_sub)
+    return finalize_score(state, question, domain, q_index, score, new_sub)
 
 
 """
@@ -266,16 +278,16 @@ Handlers for unique questions that dont fit generic structure.
 like non linear scoring for repetition, names, recall address/name trial.
 """
 _HANDLERS = {
-    "person_name": (_handle_person_name, _reprompt_text_person_name),
-    "registration": (_handle_registration, _reprompt_text_registration),
-    "season": (_handle_season, _reprompt_text_season),
-    "word_rep": (_handle_sub_score_bands, None),
-    "name_address": (_handle_name_address_trials, _reprompt_text_name_address),
-    "recognition": (_handle_recognition, None),
+    "person_name": (handle_person_name, reprompt_text_person_name),
+    "registration": (handle_registration, reprompt_text_registration),
+    "season": (handle_season, reprompt_text_season),
+    "word_rep": (handle_sub_score_bands, None),
+    "name_address": (handle_name_address_trials, reprompt_text_name_address),
+    "recognition": (handle_recognition, None),
 }
 
 
-def _match_kind(question, sub_index):
+def match_kind(question, sub_index):
     """
     Reads JSON fields for specific question HANDLERS
     """
@@ -306,47 +318,48 @@ def _match_kind(question, sub_index):
     return None
 
 def save_on_close():
-    if _latest_state is not None:
-        save_progress(_latest_state)
+    if save_ace_file is not None:
+        save_progress(save_ace_file)
 
 def conversation_node(state: ACEState) -> dict:
     """
     Speaks the current question and captures the patient's response.
-    Handles skip logic, visual/click task routing, and _HANDLERS-driven
-    reprompt phrasing.
+    Handles skip logic, visual/click tasks, and custom reprompt phrasing.
     """
-    global _latest_state
-    _latest_state = state
+    global save_ace_file
+    save_ace_file = state
     domain = state["current_domain"]
     q_index = state["question_index"]
     sub_index = state.get("sub_question_index", 0)
     question = ace_json[domain]["questions"][q_index]
-
-    if _match_kind(question, sub_index) == "recognition" and _recognition_recalled(question, sub_index, state):
+    # Skip asking if the patient already got this right during delayed recall
+    if match_kind(question, sub_index) == "recognition" and recognition_recalled(question, sub_index, state):
         return {"messages": [AIMessage(content=""), HumanMessage(content="")]}
-
-    if question.get("match_type") == "visual":
+    
+    # Route drawing/visual tasks to their own handler
+    if question.get("match_type") in ("clock", "pen_paper", "cube", "infinity", "sentances"):
         return run_visual_task(state, question, tts, audio_, session_config_, gui_)
-
+    
+    # Route interactive click-on-screen pointing task
     if is_click_point_question(question):
         total_questions = len(ace_json[domain]["questions"])
         next_question = ace_json[domain]["questions"][q_index + 1] if q_index + 1 < total_questions else None
         return run_click_task(state, question, tts, session_config_, next_question, gui_)
-
+    # Display stimulus image if the question calls for one (and isn't a repeat turn)
     if question.get("image") and not state.get("needs_repeat"):
         gui_.show_stimulus_image(question["image"])
-
+    # Grab the text prompt for the current sub-question
     prompts = get_sub_prompts(question)
     if prompts and sub_index < len(prompts):
         text = prompts[sub_index]
     else:
         spoken = parse_spoken_prompts(question)
         text = spoken[0] if spoken else question["question_text"]
-
-    kind = _match_kind(question, sub_index)
+    # Check if a custom reprompt function exists for this question type
+    kind = match_kind(question, sub_index)
     reprompt_fn = _HANDLERS[kind][1] if kind else None
     reprompt = reprompt_fn(state, question, text) if reprompt_fn else None
-
+    # Determine what to say out loud
     if reprompt:
         spoken_text = reprompt
     elif state.get("needs_repeat"):
@@ -357,13 +370,13 @@ def conversation_node(state: ACEState) -> dict:
         )
         spoken_text = f"{wrapper} {text}".strip() if wrapper else text
 
-    print("Assessor:", spoken_text)
-    
+    # Output text to console, GUI, and Text-to-Speech
     gui_.add_message("assessor", spoken_text)
     tts.speak(spoken_text)
-
+    print("Assessor:", spoken_text)
+    # Listen for the patient's answer (up to 2 x 60 seconds retries if audio comes back empty)
     question_key = (domain, q_index, sub_index)
-    for _ in range(5):
+    for _ in range(2): 
         user_input = (
             audio_f.capture_response(on_tick=gui_.pump, question_key=question_key) if domain == "Fluency"
             else audio_.capture_response(on_tick=gui_.pump, question_key=question_key)
@@ -374,18 +387,22 @@ def conversation_node(state: ACEState) -> dict:
         break
     else:
         user_input = ""
-
+    # No answer after retries -> trigger a repeat
     if not user_input:
-        return {"needs_repeat": True}
+        return {
+            "needs_repeat": True,
+            "messages": [AIMessage(content=spoken_text), HumanMessage(content="")],
+        }
 
     print("Patient:", user_input)
     return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=user_input)]}
 
 
 def scoring_node(state: ACEState) -> dict:
-    """
-    Scores the patient's last response: generic questions run classify_turn
-    then score_question directly.
+    """ 
+    Scores the patient's last response. 
+    Routes to specialized handlers for complex question types, or runs standard
+    classification and fuzzy matching for generic ones.
     """
     domain = state['current_domain']
     q_index = state['question_index']
@@ -399,6 +416,7 @@ def scoring_node(state: ACEState) -> dict:
     prompts = get_sub_prompts(question)
     is_multi = bool(prompts)
 
+    # Grab the text that was asked for this specific sub-question turn
     if prompts and sub_index < len(prompts):
         asked_text = prompts[sub_index]
     else:
@@ -412,22 +430,32 @@ def scoring_node(state: ACEState) -> dict:
     match_type = question.get("match_type", "")
     is_fluency = match_type in ("fluency_letter", "fluency_animal")
 
-    kind = _match_kind(question, sub_index)
+    kind = match_kind(question, sub_index)
 
-    skip_turn_gate = (
-        is_fluency or match_type == "visual" or is_click_point_question(question)
+    is_visual = question.get("match_type") in ("clock", "pen_paper", "cube", "infinity", "sentances")
+
+    skip_repeat = (
+        is_fluency or is_visual or match_type == "serial_sevens"
+        or is_click_point_question(question)
         or (kind is not None and kind != "season")
     )
-    if not skip_turn_gate and classify_turn(last_message, asked_text) != "answer" and repeats < max_repeats:
-        return {"needs_repeat": True, "repeat_count": repeats + 1}
 
+    # Re-ask (without scoring) when the LLM says the patient didn't actually answer
+    # doesn't apply (drawings, clicks, fluency, serial sevens, custom handlers).
+    if not skip_repeat and classify_turn(last_message, asked_text) != "answer" and repeats < max_repeats:
+        
+        return {"needs_repeat": True, "repeat_count": repeats + 1}
+   
     uses_score_fuzzy = kind in ("season", "recognition", "person_name") or (kind is None and (is_multi or match_type in ("fuzzy", "exact")))
     if uses_score_fuzzy:
+        # uses LLM to classify users final awnser - introduced to prevent spam awnsers
+        # was only introduced on questions were users can spam there awnsers.
         last_message = extract_final_answer(last_message, asked_text)
-
+    # Route to specialized scoring handler if one exists
     if kind:
         return _HANDLERS[kind][0](state, question, last_message, score_domain, q_index, sub_index)
-
+    
+    # Standard question scoring
     if is_multi:
         score = score_question(last_message, question, sub_index=sub_index) if sub_index < len(expected_answers) else 0
         new_sub = sub_index + 1
@@ -435,31 +463,30 @@ def scoring_node(state: ACEState) -> dict:
         score = score_question(last_message, question)
         new_sub = 0
 
-    if score is None:
-        return {
-            "needs_repeat": False, "repeat_count": 0,
-            "reprompt_kind": None, "turn_progress": 0, "sub_question_index": new_sub,
-        }
-
-    result = _finalize_score(state, question, score_domain, q_index, score, new_sub)
+    result = finalize_score(state, question, score_domain, q_index, score, new_sub)
     recall_key = question.get("recall_key")
     print(f"Scoring node: domain={domain}, question={q_index + 1}, sub={sub_index + 1}, "
           f"score={score}, new_sub={new_sub}, recall_key={recall_key}, is_multi={is_multi}")
-    if recall_key and not is_multi:
+    if recall_key and not is_multi: # Very last question if user recalls half of name,adress then prompt multichoice
         # Stash per-element results so a later recognition question can skip
         # elements already credited here.
         matches = score_mixed_list_detailed(last_message, expected_answers)
         result["recall_matches"] = {**state.get("recall_matches", {}), recall_key: matches}
     return result
 
-def _question_record(state: ACEState) -> dict:
-    """One review-log entry for the question just finished: every patient
-    response captured since question_turn_start, plus its final score."""
+def question_record(state: ACEState) -> dict:
+    """
+    Builds a review-log entry for a completed question.
+    Gathers all patient turns since the question started and pairs them with the final score.
+    """
     domain = state["current_domain"]
     q_index = state["question_index"]
     question = ace_json[domain]["questions"][q_index]
+
+    # Grab all patient responses given during this question's attempts
     start = state.get("question_turn_start", 0)
     responses = [m.content for m in state["messages"][start:] if isinstance(m, HumanMessage)]
+
     return {
         "domain": domain,
         "question_index": q_index,
@@ -472,15 +499,16 @@ def _question_record(state: ACEState) -> dict:
 
 def advance_node(state: ACEState) -> dict:
     """
-    Logs the finished question, then moves to the next question in the
-    domain (resetting question_score); if the domain's questions are
-    exhausted, pops the next domain off domain_queue.
+    Logs the finished question, resets scoring, and routes to the next question.
+    Handles standard domain progression plus custom detour logic for the ACE-III 
+    (interleaving Fluency & Visuospatial between Memory recall steps).
     """
     domain = state["current_domain"]
     q_index = state["question_index"]
     question = ace_json[domain]["questions"][q_index]
     total_questions = len(ace_json[domain]["questions"])
-    question_log = state.get("question_log", []) + [_question_record(state)]
+    # Update log & tracking metadata
+    question_log = state.get("question_log", []) + [question_record(state)]
     question_turn_start = len(state["messages"])
     previous_task_signature = (domain, task_type(question))
 
@@ -494,7 +522,7 @@ def advance_node(state: ACEState) -> dict:
     elif domain == "Memory" and q_index == 5:
         # Delayed recall/recognition (Memory Q6-7)
         # asking them right after the retrograde questions; detour back
-        # once Visuospatial (the last domain) finishes.
+        # once Visuospatial finishes.
         q = state["domain_queue"].copy()
         next_domain = q.pop(0)
         result = {
@@ -537,21 +565,11 @@ def advance_node(state: ACEState) -> dict:
             "previous_task_signature": previous_task_signature,
         }
 
-    # Checkpoint reflects where the assessment will resume from (the question
-    # about to be asked next), not the one that just finished.
+    # Auto-save progress pointing at the upcoming state
     save_progress({**state, **result})
     return result
 
-RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
-
-
-def _interpret_ace_total(total: int) -> str:
-    # Cutoffs and sensitivity/specificity from the ACE-III administration guide.
-    if total >= 88:
-        return "At or above 88 — not indicative of dementia by either ACE-III cutoff."
-    if total >= 82:
-        return "Below 88 but at/above 82."
-    return "Below both 88 and 82 — flagged by both ACE-III cutoffs."
+results_dir = os.path.join(os.path.dirname(__file__), "results")
 
 
 def report_node(state: ACEState) -> dict:
@@ -560,21 +578,18 @@ def report_node(state: ACEState) -> dict:
     """
     scores = state["scores"]
     total = sum(scores.values())
-    interpretation = _interpret_ace_total(total)
-    # advance_node handles every question but the very last one (router sends
-    # scoring straight to report for it), so record it here before dumping.
-    question_log = state.get("question_log", []) + [_question_record(state)]
-
+    # Log the final question since advance_node gets skipped on the last turn
+    question_log = state.get("question_log", []) + [question_record(state)]
+    # Console summary output
     print("\n--- ACE-III Complete ---")
     for domain, score in scores.items():
         print(f"{domain}: {score}/{ace_json[domain]['score_cap']}")
     print(f"Total: {total}/100")
-    print(interpretation)
-
-    os.makedirs(RESULTS_DIR, exist_ok=True)
+    # Generate timestamped JSON report in the results directory
+    os.makedirs(results_dir, exist_ok=True)
     patient_name = session_config_.get("patient", {}).get("name", "unknown")
     safe_name = "".join(c if c.isalnum() else "_" for c in str(patient_name))
-    out_path = os.path.join(RESULTS_DIR, f"ACE-III_{safe_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    out_path = os.path.join(results_dir, f"ACE-III_{safe_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
     with open(out_path, "w") as f:
         json.dump({
             "patient": session_config_.get("patient"),
@@ -583,19 +598,17 @@ def report_node(state: ACEState) -> dict:
             "domain_scores": scores,
             "domain_caps": {d: ace_json[d]["score_cap"] for d in ace_json},
             "total_score": total,
-            "interpretation": interpretation,
             "questions": question_log,
         }, f, indent=2)
     print(f"\nSaved results to {out_path}")
 
-    # A finished assessment has no in-progress state left to resume from —
-    # remove the checkpoint so it can't be mistaken for an unfinished session.
-    progress_path = os.path.join(PROGRESS_DIR, f"progress_{safe_name}.json")
+    # Clean up checkpoint file so this completed run can't be resumed by accident
+    progress_path = os.path.join(progress_dir, f"progress_{safe_name}.json")
     if os.path.exists(progress_path):
         os.remove(progress_path)
     global _latest_state
     _latest_state = None
-
+    # Final wrap-up UI prompt & shutdown delay
     gui_.add_message("assessor", "Thank you — that concludes the assessment.")
     time.sleep(3)
     gui_.close()
@@ -604,40 +617,47 @@ def report_node(state: ACEState) -> dict:
 
 # Routes Flow of StateMachine
 def router(state: ACEState) -> str:
+    """
+    Decides the next edge to transition to in the state graph.
+    Returns one of: 'repeat_question', 'next_sub_question', 'next_question', 'next_domain', or 'report'.
+    """
+    # Needs a reprompt/repeat turn? Hold state and ask again.
     if state.get("needs_repeat"):
         return "repeat_question"
-    # next_sub_question | next_question | next_domain | report
     domain = state['current_domain']
     q_index = state['question_index']
     sub_index = state.get('sub_question_index', 0)
     question = ace_json[domain]["questions"][q_index]
     prompts = get_sub_prompts(question)
-
+    # Sub-question step remaining?
     if prompts and sub_index < len(prompts):
         return "next_sub_question"
-
     total_questions = len(ace_json[domain]["questions"])
+    # More questions left in current domain?
     if q_index + 1 < total_questions:
         return "next_question"
+    # if Visuospatial finished Force detour back to Memory delayed recall (even with empty queue)
     elif domain == "Visuospatial":
-        # Always detours back to Memory for delayed recall/recognition, even
-        # though domain_queue is already empty by this point.
         return "next_domain"
+    # More domains left in queue? Move to next domain
     elif state['domain_queue']:
         return "next_domain"
+    # Everything done -> final report node
     else:
         return "report"
 
-PROGRESS_DIR = os.path.join(RESULTS_DIR, "progress")
+progress_dir = os.path.join(results_dir, "progress")
 
 def save_progress(state: ACEState) -> str:
-    """Writes the full in-progress state to disk so an interrupted session
-    can be resumed later. Overwrites the same file each call"""
-    os.makedirs(PROGRESS_DIR, exist_ok=True)
+    """
+    Saves the full in-progress state to disk so an interrupted assessment can be resumed.
+    Overwrites the same patient checkpoint file on every call.
+    """
+    os.makedirs(progress_dir, exist_ok=True)
     patient_name = session_config_.get("patient", {}).get("name", "unknown")
     safe_name = "".join(c if c.isalnum() else "_" for c in str(patient_name))
-    out_path = os.path.join(PROGRESS_DIR, f"progress_{safe_name}.json")
-
+    out_path = os.path.join(progress_dir, f"progress_{safe_name}.json")
+    # Serializes state attributes and converts LangChain messages into simple dicts
     with open(out_path, "w") as f:
         json.dump({
             "current_domain": state["current_domain"],
@@ -657,7 +677,6 @@ def save_progress(state: ACEState) -> str:
             "previous_task_signature": state.get("previous_task_signature"),
             "messages": [{"role": m.type, "content": m.content} for m in state["messages"]],
         }, f, indent=2)
-
     return out_path
 
 builder = StateGraph(ACEState)

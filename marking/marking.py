@@ -224,6 +224,14 @@ def score_person_name(response, answers):
 
     return 0
 
+# phonetically simular
+reading_variants = {
+    "sew": ["sou", "so", "soh"],
+    "soot": ["sut", "sutt"],
+    "dough": ["doe", "doh", "dou"],
+    "height": ["hite"],
+}
+
 def score_fuzzy_list(response, answers):
     """Each answer in list scored separately via sliding window. Response words
     already used by an earlier match can't be reused by a later one. 
@@ -234,13 +242,16 @@ def score_fuzzy_list(response, answers):
     response_words = clean_response(response).split()
 
     # Pre-process and normalize expected target answers
-    expected = [normalise_number(clean_response(a)) for a in answers]
+    expected = []
+    for a in answers:
+        base = normalise_number(clean_response(a))
+        expected.append((base, reading_variants.get(base, [])))
 
-    for y in expected:
+    for y, aliases in expected:
         # Skip this target answer if an identical target was already matched
         if y in matched:
             continue
-        # Try n-gram window sizes from 1 up to MAX_FUZZY_WINDOW (or total response length)
+        # Try n-gram window sizes from 1 up to fuzzy threshold (or total response length)
         for n in range(1, min(fuzzy_threshold, len(response_words)) + 1):
             # Slide an n-word window across the response text
             for i in range(len(response_words) - n + 1):
@@ -250,7 +261,8 @@ def score_fuzzy_list(response, answers):
                 # combine words into normalized phrase
                 window = normalise_number(" ".join(response_words[i:i + n]))
                 # Check match criteria: high fuzzy string similarity OR matching phonetic sound
-                if rapidfuzz.fuzz.ratio(window, y) >= 88 or phonetic_equal(window, y):
+                if (rapidfuzz.fuzz.ratio(window, y) >= 88 or phonetic_equal(window, y)
+                        or any(rapidfuzz.fuzz.ratio(window, v) >= 88 for v in aliases)):
                     matched.add(y)
                     used_words.update(range(i, i + n))
                     score += 1
@@ -259,6 +271,7 @@ def score_fuzzy_list(response, answers):
                 continue
             break
     return score
+
 
 def score_all_correct_list(response, answers):
     """1 point only if every item in the list was matched,
@@ -282,9 +295,9 @@ def is_animal(word):
         parents = set(ss.closure(lambda s: s.hypernyms()))
         if wn.synset("animal.n.01") in parents:
             return True
-        if ss == wn.synset("mythical_creature.n.01"): # Mythical Creatures are accepted
+        if wn.synset("mythical_creature.n.01") in parents: # Mythical Creatures are accepted
             return True
-        if ss == wn.synset("dinosaur.n.01"): # dinousours are accepted
+        if wn.synset("dinosaur.n.01") in parents: # dinousours are accepted
             return True
     return False
 
@@ -437,21 +450,23 @@ def score_mixed_list_detailed(response, answers):
     Used to carry per-element recall results into a later recognition task."""
     matched_text = set()
     matched = [False] * len(answers)
-    
+    # Pre-process and tokenise the participant's full response
     response_words = clean_response(response).split()
-
+    # Check each target answer against sliding n-gram windows in the response
     for idx, answer in enumerate(answers):
         cleaned = clean_response(answer)
         normed = normalise_number(cleaned)
         is_number = normed.isdigit()
-
+        # Skip if this specific answer text was already matched earlier in the list
         if cleaned in matched_text:
             continue
+        # Search using 1 to 3 word sliding windows across response_words
         for n in range(1, min(3, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
                 window_raw = " ".join(response_words[i:i + n])
                 window = normalise_number(window_raw)
                 hit = (window == normed) if is_number else (rapidfuzz.fuzz.ratio(window_raw, cleaned) >= fuzzy_threshold)
+                # Exact match for numerical answers, fuzzy ratio match for text answers
                 if hit:
                     matched_text.add(cleaned)
                     matched[idx] = True
@@ -466,12 +481,10 @@ def score_mixed_list(response, answers):
     return sum(score_mixed_list_detailed(response, answers))
 
 def score_question(response, question, sub_index=None):
-    """Main dispatch. Returns None for manual questions (flag for review), int otherwise."""
+    """Main dispatch. Returns the integer score for `response`."""
     match_type = question.get("match_type", "fuzzy_list")
     answers = question.get("answers", [])
 
-    if match_type == "manual":
-        return None
     if match_type == "fluency_letter":
         return score_letter_fluency(response)
     if match_type == "fluency_animal":

@@ -1,6 +1,8 @@
+
 class TTSEngine:
     def __init__(self, furhat):
         self.furhat = furhat
+        furhat.set_voice(name="JennyNeural")
 
     def speak(self, text: str, rate="slow"):
         print(f"[TTS] Saying: {text}")

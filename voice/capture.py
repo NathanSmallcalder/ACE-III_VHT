@@ -2,23 +2,23 @@ import numpy as np
 import sounddevice as sd
 from faster_whisper import WhisperModel
 
-SILENCE_THRESHOLD = 0.02
-SILENCE_DURATION = 2
-MAX_RESPONSE_DURATION = 60
-FLUENCY_SILENCE_DURATION = 15
+silence_threshold = 0.05
+silence_duration = 2
+max_response = 60
+fluency_task_silence = 15
 
 class AudioCapture:
-    def __init__(self, model_size="large", silence_timeout=SILENCE_DURATION, model=None):
+    def __init__(self, model_size="large", silence_timeout=silence_duration, model=None):
         self.sample_rate = 16000
         self.silence_timeout = silence_timeout
-
+        
         if model is not None:
             self.model = model
         else:
             print("[Audio] Loading Whisper model... (")
             self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
-    def capture_response(self, on_tick=None, question_key=None) -> str:
+    def capture_response(self, on_tick=None, question_key=None, max_duration=max_response) -> str:
         """"""
         print("[Audio] Listening for response...")
 
@@ -29,14 +29,14 @@ class AudioCapture:
 
         with sd.InputStream(samplerate=self.sample_rate, channels=1, dtype='float32') as stream:
             while True:
-                chunk = stream.read(1024)
+                chunk, _overflowed = stream.read(1024)
                 recording_buffer.append(chunk)
                 if on_tick is not None:
                     on_tick()
 
                 energy = np.sqrt(np.mean(chunk**2))
 
-                if energy > SILENCE_THRESHOLD:
+                if energy > silence_duration:
                     has_spoken = True
                     silent_chunks_count = 0
                 else:
@@ -47,7 +47,7 @@ class AudioCapture:
                     print("[Audio] Silence detected. Processing speech...")
                     break
 
-                if len(recording_buffer) * 1024 > self.sample_rate * MAX_RESPONSE_DURATION:
+                if len(recording_buffer) * 1024 > self.sample_rate * max_duration:
                     print("[Audio] Max time limit reached. Processing...")
                     break
 
