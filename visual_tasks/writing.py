@@ -5,25 +5,27 @@ from dotenv import load_dotenv
 
 from LLM.LLM import llm_strict
 from LLM.vlm import build_client, describe_images, save_vlm_response
-
+import language_tool_python
 load_dotenv()
 
 # Load the English NLP model
 nlp = spacy.load("en_core_web_sm")
-
-prompt = (
-    'You are checking a single sentence written by a patient during a cognitive '
-    'assessment for grammar or spelling errors.\n\n'
-    'Sentence: "{sentence}"\n\n'
-    'Does this sentence contain any grammar or spelling error (including a '
-    'wrong-word/homophone mistake)? Respond with exactly one word: YES or NO.'
-)
+tool = language_tool_python.LanguageTool('en-US')
 
 
-def sentence_has_error_llm(sentence_text):
-    response = llm_strict.invoke(prompt.format(sentence=sentence_text))
-    return response.content.strip().upper().startswith("Y")
+def sentence_has_grammer_issues(sentence_text):
+        matches = tool.check(sentence_text)
 
+        critical_errors = [
+            m for m in matches 
+        if m.category in ('GRAMMAR', 'TYPOS', 'CASING', 'PUNCTUATION')
+        ]
+    
+        
+        # Returns True if grammar errors exist, False if none are found
+        return len(critical_errors) > 0
+
+ 
 def classify_sentences(text):
     """Split text into sentences and, for each, report whether it has a
     subject+verb (i.e. counts as a sentence rather than a fragment) and
@@ -43,7 +45,7 @@ def classify_sentences(text):
         classified.append({
             "text": sent_text,
             "is_valid_sentence": has_subject and has_verb,
-            "has_errors": sentence_has_error_llm(sent_text),
+            "has_errors": sentence_has_grammer_issues(sent_text),
         })
 
     return classified

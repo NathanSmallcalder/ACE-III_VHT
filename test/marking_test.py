@@ -302,3 +302,33 @@ animal_fluency_cases = {
 def test_score_animal_fluency(response, expected):
     result = score_animal_fluency(response)
     assert result == expected
+
+
+
+animal_fluency_cases = {
+    # --- Score 0: Fails both criteria ---
+    "zero_short_error": ("dog ", 0),
+    "zero_list_error": ("dog cat hrose cow goat", 0),  # Misspelled "hrose", not 2 sentences
+    
+    # --- Score 1: One topic sentence, but flawless grammar/spelling ---
+    "one_point_perfect_single_sentence": ("The beach was nice.", 1), 
+
+    # --- Score 1: At least two sentences, but contains grammar/spelling errors ---
+    "one_point_two_sentences_bad_spelling": ("The beach was nice. It was very womr.", 1),  # Typo: "womr"
+    "one_point_two_sentences_bad_grammar": ("The beach where nice. It was very warm.", 1),  # Subject-verb agreement error
+    "error":("Christmas has lovely, it was very special",1),
+    
+    # --- Score 2: Passes both criteria ---
+    "two_points_perfect_two_sentences": ("The beach was nice. It was very warm.", 2),
+    "two_points_perfect_multi_sentence": ("Cats are very quiet pets. They sleep all day long.", 2)
+}
+
+from visual_tasks import writing
+@pytest.mark.parametrize(
+    "response, expected",
+    animal_fluency_cases.values(),
+    ids=animal_fluency_cases.keys()
+)
+def test_score_writing(response, expected):
+    result = writing.score_sentence_writing(response)
+    assert result == expected
