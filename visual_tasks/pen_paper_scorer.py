@@ -67,12 +67,6 @@ def _extract_frames(video_path: str, output_dir: str, num_frames: int = frames, 
         paths.append(path)
     return paths
 
-
-def _describe_pen_paper(frame_paths: list[str]) -> dict:
-    """Send the ordered frames to the VLM and parse its structured judgment."""
-    return describe_images(llm, pen_paper_prompt, frame_paths)
-
-
 def score_pen_paper(data: dict) -> dict:
     def get(field):
         return str(data.get(field, "")).strip().lower()
@@ -98,7 +92,7 @@ def score_pen_paper_video(video_path: str) -> dict:
             return {"total": 0}
 
     frame_paths = _extract_frames(video_path, FRAMES_DIR)
-    data = _describe_pen_paper(frame_paths)
+    data = describe_images(frame_paths)
     result = score_pen_paper(data)
     save_vlm_response("pen_paper", video_path, data, result)
     return result
@@ -115,7 +109,7 @@ if __name__ == "__main__":
     frames = _extract_frames(video_path, FRAMES_DIR)
     print("frames written:", len(frames))
 
-    data = _describe_pen_paper(frames)
+    data = describe_images(frames)
     print("\n── Parsed Fields")
     for field in [
         "paper_placed_on_pencil", "pencil_lifted_without_paper",

@@ -11,6 +11,7 @@ from marking.marking import *
 from datetime import datetime
 from data_loader import resolve_dynamic_answers, get_season_transition, ace_json
 from visual_tasks.visual import run_visual_task, run_click_task, is_click_point_question, task_type
+from virtual_avatar.avatar import furhat_nod, furhat_repeat
 
 class ACEState(MessagesState):
     current_domain: str
@@ -363,11 +364,15 @@ def conversation_node(state: ACEState) -> dict:
     if reprompt:
         spoken_text = reprompt
     elif state.get("needs_repeat"):
+        if tts.furhat:
+            furhat_repeat(tts.furhat)
         spoken_text = rephrase_question(text)
     else:
         wrapper = transition_que(
             state, session_config_["patient"]["name"], domain, task_type(question), sub_index,
         )
+        if wrapper and tts.furhat:
+            furhat_nod(tts.furhat)
         spoken_text = f"{wrapper} {text}".strip() if wrapper else text
 
     # Output text to console, GUI, and Text-to-Speech
@@ -446,11 +451,13 @@ def scoring_node(state: ACEState) -> dict:
         
         return {"needs_repeat": True, "repeat_count": repeats + 1}
    
-    uses_score_fuzzy = kind in ("season", "recognition", "person_name") or (kind is None and (is_multi or match_type in ("fuzzy", "exact")))
+    uses_score_fuzzy = kind in ("season", "recognition", "person_name") or (kind is None and (is_multi or match_type in ("fuzzy", "exact", "integer")))
     if uses_score_fuzzy:
         # uses LLM to classify users final awnser - introduced to prevent spam awnsers
         # was only introduced on questions were users can spam there awnsers.
         last_message = extract_final_answer(last_message, asked_text)
+    elif match_type == "serial_sevens":
+        last_message = extract_serial_sevens(last_message) or last_message
     # Route to specialized scoring handler if one exists
     if kind:
         return _HANDLERS[kind][0](state, question, last_message, score_domain, q_index, sub_index)
@@ -636,7 +643,7 @@ def router(state: ACEState) -> str:
     # More questions left in current domain?
     if q_index + 1 < total_questions:
         return "next_question"
-    # if Visuospatial finished Force detour back to Memory delayed recall (even with empty queue)
+    # if Visuospatial finished Force detour back to Memory delayed recall 
     elif domain == "Visuospatial":
         return "next_domain"
     # More domains left in queue? Move to next domain

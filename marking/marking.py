@@ -89,64 +89,31 @@ def score_integer(response, answers):
                 pass
     return 1
 
-math_words = {"minus", "subtract","less","take","away"}
-
-def serial_sevens_clean(response):
-    if isinstance(response,list):
-        text = " ".join(map(str,response))
-    else:
-        text = str(response)
-    text = text.lower()
-    text = re.sub(r'\b(\w+)-\1', r'\1', text)
-    text = text.replace("-", " ")
-    text = re.sub(rf'[^,;.\n]*\b(?:{"|".join(math_words)})\b\s*\S*', '', text)
-    extracted_numbers = []
-
-    # Process text chunks/words to identify integers or spoken number phrases
-    for token in re.split(r'[,;.\n]+', text):
-        words = token.strip().split()
-        # Try evaluating phrases or individual words as numbers
-        i = 0
-        while i < len(words):
-            # Try matching 2-word combinations first (e.g., "ninety three")
-            if i + 1 < len(words) and words[i] in number_words and words[i+1] in number_words:
-                phrase = f"{words[i]} {words[i+1]}"
-                try:
-                    num = w2n.word_to_num(phrase)
-                    extracted_numbers.append(num)
-                    i += 2
-                    continue
-                except ValueError:
-                    pass
-            # Try single word or digit string
-            item = words[i]
-            if item.isdigit():
-                extracted_numbers.append(int(item))
-            else:
-                try:
-                    num = w2n.word_to_num(item)
-                    extracted_numbers.append(num)
-                except ValueError:
-                    # Non-numerical filler word (e.g., "um", "uh", "then") -> ignored
-                    pass
-            i += 1
-    cleaned_numbers = []
-    for num in extracted_numbers:
-        if num >= 100:
-            continue
-        if not cleaned_numbers or num != cleaned_numbers[-1]:
-            cleaned_numbers.append(num)
-
-    return cleaned_numbers
-    
 def score_serial_sevens(response):
-    numbers = serial_sevens_clean(response)
+    """Five steps down from 100, one mark per step exactly 7 below the number
+    said before it. Takes the numbers the patient offered as answers -- graph.py
+    runs extract_serial_sevens over the spoken turn first, so no word parsing
+    happens here. Values of 100+ (the starting point, echoed back) and a number
+    repeated twice in a row are dropped before scoring."""
+    if isinstance(response, list):
+        response = " ".join(map(str, response))
+    spoken = [int(n) for n in re.findall(r"\d+", str(response)) if int(n) < 100]
     score = 0
     prev = 100
-    for num in numbers[:5]:
+    steps = 0
+    for i, num in enumerate(spoken):
+        # "ninety... ninety-three" leaves a bare 90 in front of the real answer that the LLM does not remove
+        following = next((n for n in spoken[i + 1:] if n != num), None)
+        if num % 10 == 0 and following is not None and following // 10 == num // 10:
+            continue
+        if num == prev:  # same number said twice
+            continue
         if prev - num == 7:
             score += 1
         prev = num
+        steps += 1
+        if steps == 5:
+            break
     return score
 
 tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
@@ -164,7 +131,7 @@ def score_fuzzy(response, answers):
     for answer in answers:
         # Pre-process target answer
         expected = normalise_number(clean_response(answer))
-        for n in range(1, min(fuzzy_threshold, len(response_words)) + 1):
+        for n in range(1, min(fuzzy_window, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
                 if _is_number_fragment(response_words, i, n):
                     continue
@@ -224,12 +191,19 @@ def score_person_name(response, answers):
 
     return 0
 
-# phonetically simular
-reading_variants = {
+answer_variants = {
+    # reading: phonetically similar
     "sew": ["sou", "so", "soh"],
     "soot": ["sut", "sutt"],
     "dough": ["doe", "doh", "dou"],
     "height": ["hite"],
+    # naming: accepted alternate names for the same picture
+    "kangaroo": ["wallaby"],
+    "camel": ["dromedary"],
+    "rhinoceros": ["rhino"],
+    "barrel": ["keg", "tub"],
+    "crocodile": ["alligator"],
+    "accordion": ["piano accordion", "squeeze box"],
 }
 
 def score_fuzzy_list(response, answers):
@@ -245,7 +219,7 @@ def score_fuzzy_list(response, answers):
     expected = []
     for a in answers:
         base = normalise_number(clean_response(a))
-        expected.append((base, reading_variants.get(base, [])))
+        expected.append((base, answer_variants.get(base, [])))
 
     for y, aliases in expected:
         # Skip this target answer if an identical target was already matched
@@ -287,19 +261,26 @@ def score_sentence_repetition(response, answers):
     return score_all_correct_list(response, words)
 
 def is_animal(word):
-    """Checks if a word belongs to the animal hierarchy in WordNet."""
+    """Checks if a word belongs to the animal hierarchy in WordNet.
+    "All types of animals are accepted, including insects, humans,
+    prehistoric, extinct as well as mythical creatures (e.g., unicorn)."
+    """
     formatted = word.replace(" ", "_")
+    if formatted.lower() == "pegasus": # pegasus not in wordnet
+        return True
     for ss in wn.synsets(formatted, pos=wn.NOUN):
         if ss == wn.synset("animal.n.01"):
             return True
         parents = set(ss.closure(lambda s: s.hypernyms()))
         if wn.synset("animal.n.01") in parents:
             return True
-        if wn.synset("mythical_creature.n.01") in parents: # Mythical Creatures are accepted
+        if wn.synset("imaginary_being.n.01") in parents: # Mythical Creatures are accepted
             return True
         if wn.synset("dinosaur.n.01") in parents: # dinousours are accepted
             return True
     return False
+
+
 
 animal_types = {
     "fish", "bird", "insect", "reptile", "mammal", "rodent",
@@ -314,14 +295,14 @@ gender_map = {
     "rooster": "chicken", "hen": "chicken", "chick": "chicken",
     "ram": "sheep", "ewe": "sheep", "lamb": "sheep",
     "sow": "pig", "boar": "pig", "piglet": "pig",
-    "cub": "bear", "lioness": "lion", "puppy": "dog", "kitten": "cat"
+    "cub": "bear", "lioness": "lion", "puppy": "dog", "kitten": "cat",
+    "man":"women"
 }
 
 def score_animal_fluency(response):
     words = clean_response(response).split()
     unique_animals = set()
     used_indices = set()
-
     # Catch 2-word animals in WordNet (e.g., "polar bear")
     for i in range(len(words) - 1):
         bigram = f"{words[i]} {words[i + 1]}"
@@ -382,7 +363,7 @@ def scaled_count(count, bands):
     return 0
 
 # Common P- first names excluded from letter fluency even when they also happen
-COMMON_NAMES = {
+common_names = {
     "peter", "paul", "patricia", "pamela", "paula", "penny", "penelope",
     "philip", "phillip", "phoebe", "priscilla", "patrick", "percy", "piper",
 }
@@ -393,10 +374,10 @@ def p_word_root(word):
     (pay/paid/pays -> pay, pot/pots -> pot) into a single countable word."""
     word = word.lower().strip()
     # Rejects the word if less than 2 or starts with P return None
-    if len(word) < 2 or not word.startswith("p"):
+    if len(word) < 3 or not word.startswith("p"):
         return None
     # rejects word if in common names
-    if word in COMMON_NAMES:
+    if word in common_names:
         return None
     # Gets the base dictonary root (e.g paid -> pay)
     root = wn.morphy(word)

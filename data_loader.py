@@ -21,8 +21,8 @@ def get_season(date):
 
 def get_season_transition(now):
     """Returns (true_season, adjacent_season). adjacent_season is the neighbouring
-    season if `now` is within SEASON_TRANSITION_WINDOW_DAYS of a season boundary,
-    else None. Used to give a leniency reprompt near season changes."""
+    season if `now` is within 7 of a season boundary,
+    else None."""
     true_season = get_season(now)
     forward = get_season(now + timedelta(days=7))
     if forward != true_season:

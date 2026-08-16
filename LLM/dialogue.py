@@ -191,6 +191,29 @@ def classify_turn(last_response: str, question_text: str = "") -> str:
         return matches[-1]
     return "repeat"
 
+def extract_serial_sevens(last_response: str) -> str:
+    """Pulls just the numbers the patient offered as answers out of a serial-sevens
+    turn, as a space-separated string for score_serial_sevens to do the arithmetic on.
+    Spoken phrasing ("take away another seven"), stutters ("s-seventy... seventy-two")
+    and quoted transcripts all leave stray values behind when parsed by rule alone.
+    The model only transcribes -- it never checks or corrects the subtraction."""
+    out = llm_strict.invoke([
+        SystemMessage(content=( 
+            """
+        Extract only the numbers given as serial 7 subtraction answers, maintaining the sequence as spoken.
+        Output digits only, separated by single spaces (no punctuation, commentary, or sequence completion).
+        Copy exact answers word for word, inless they have been transcribed as words instead of numbers,
+        conver them into number eqivelent, e.g ninety-one --> 91, preserving any arithmetic errors.
+        Omit the starting 100 and the subtracted 7s. Combine stutters, restarts, or partial numbers 
+        (e.g., "eighty... eighty-six" or "eighty... six is 86" or sev-seventy-nine is 79, ninenty um ok three = 93) into a single number.
+        Output a value for each number spoken.
+        """
+        )),
+        HumanMessage(content=f"Patient said: {last_response}")
+    ])
+    return " ".join(re.findall(r"\d+", out.content))
+
+
 def extract_final_answer(last_response: str, question_text: str = "") -> str:
     """Resolves a patient's utterance down to the single value they actually
     settled on, for questions later matched by fuzzy string comparison
@@ -205,9 +228,15 @@ def extract_final_answer(last_response: str, question_text: str = "") -> str:
             "If they corrected themselves, use the corrected value, not the discarded one. "
             "If they mentioned another value only in passing (e.g. explaining or reasoning "
             "about their answer), ignore it and keep their actually stated answer. "
-            "If they never commit to a single value and instead list out every plausible "
-            "option, reply with nothing.\n\n"
+            "If they never commit to a single value and instead list out several different "
+            "plausible options, reply with nothing. Repeating one value, hesitating around "
+            "it, or trailing off after it still counts as settling on that value -- reply "
+            "with the value, not nothing. Give the value complete: when it is spoken in "
+            "parts (a year as 'twenty twenty-six', a number said piece by piece), include "
+            "every part, never just the last one.\n\n"
             "Examples:\n"
+            "Q: What is today's date?\nPatient: fifteen... fifteen... um... it's... fifteen... hold on...\n-> fifteen\n"
+            "Q: What year is it?\nPatient: is it... twenty... hold on... twenty... twenty-six...\n-> twenty twenty-six\n"
             "Q: Which county are we in?\nPatient: The county is Kent, oh wait, I'm in Essex.\n-> Essex\n"
             "Q: What day is it?\nPatient: Tuesday, ah well, my family come today.\n-> Tuesday\n"
             "Q: What day is it?\nPatient: Monday, Tuesday, Wednesday, Thursday, Friday.\n-> \n"

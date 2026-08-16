@@ -15,10 +15,9 @@ tool = language_tool_python.LanguageTool('en-US')
 
 def sentence_has_grammer_issues(sentence_text):
         matches = tool.check(sentence_text)
-
         critical_errors = [
-            m for m in matches 
-        if m.category in ('GRAMMAR', 'TYPOS', 'CASING', 'PUNCTUATION')
+            m for m in matches
+        if m.category in ('GRAMMAR', 'TYPOS', 'CASING')
         ]
     
         
