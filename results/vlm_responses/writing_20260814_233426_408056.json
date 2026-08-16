@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T23:34:26.409056",
+  "image_path": "I had a good breakfast this morning with some toast and coffee. Then I spent time reading the newspaper before coming here for my appointment.",
+  "raw_response": {
+    "transcription": "I had a good breakfast this morning with some toast and coffee. Then I spent time reading the newspaper before coming here for my appointment."
+  },
+  "score": {
+    "total": 2
+  }
+}

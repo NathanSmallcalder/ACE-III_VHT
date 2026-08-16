@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T20:04:55.193444",
+  "image_path": "I went for a short walk around the neighborhood this morning. Later, I made a cup of tea and read the newspaper.",
+  "raw_response": {
+    "transcription": "I went for a short walk around the neighborhood this morning. Later, I made a cup of tea and read the newspaper."
+  },
+  "score": {
+    "total": 2
+  }
+}

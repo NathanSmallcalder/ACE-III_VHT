@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-15T23:23:57.691193",
+  "image_path": "I went for a walk in the park this morning. After that, I made a delicious lunch for my family.",
+  "raw_response": {
+    "transcription": "I went for a walk in the park this morning. After that, I made a delicious lunch for my family."
+  },
+  "score": {
+    "total": 2
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T15:08:22.693201",
+  "image_path": "I had a light breakfast of toast and coffee this morning. Afterward, my daughter drove me here for my appointment.",
+  "raw_response": {
+    "transcription": "I had a light breakfast of toast and coffee this morning. Afterward, my daughter drove me here for my appointment."
+  },
+  "score": {
+    "total": 2
+  }
+}

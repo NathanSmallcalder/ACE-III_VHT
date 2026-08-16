@@ -33,6 +33,8 @@ class ReplayAudio:
         return answer
 
 class NullTTS:
+    furhat = None  # no robot to gesture with during a replay
+
     def speak(self, text):
         print("Assessor:", text)
 

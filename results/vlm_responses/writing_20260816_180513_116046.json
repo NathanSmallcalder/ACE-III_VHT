@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T18:05:13.116046",
+  "image_path": "This morning I had toast and coffee for breakfast. After that I walked around the garden.",
+  "raw_response": {
+    "transcription": "This morning I had toast and coffee for breakfast. After that I walked around the garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

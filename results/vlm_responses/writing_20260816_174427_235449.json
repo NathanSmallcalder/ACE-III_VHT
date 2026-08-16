@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T17:44:27.235449",
+  "image_path": "I went for a walk around the neighborhood this morning. Later, I made myself lunch and worked on a puzzle.",
+  "raw_response": {
+    "transcription": "I went for a walk around the neighborhood this morning. Later, I made myself lunch and worked on a puzzle."
+  },
+  "score": {
+    "total": 2
+  }
+}

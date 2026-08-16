@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T12:17:25.178795",
+  "image_path": "I went for a peaceful walk in the park this morning. Later, I spent time reading a book in my garden.",
+  "raw_response": {
+    "transcription": "I went for a peaceful walk in the park this morning. Later, I spent time reading a book in my garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

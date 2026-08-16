@@ -1,0 +1,26 @@
+{
+  "task": "clock",
+  "timestamp": "2026-08-16T01:28:43.376523",
+  "image_path": "test/Clocks/4\\Clock_4_2.png",
+  "raw_response": {
+    "circle_present": "yes",
+    "circle_closed": "yes",
+    "all_12_present": "yes",
+    "missing_numbers": "none",
+    "duplicated_numbers": "none",
+    "numbers_in_correct_order": "yes",
+    "numbers_outside_circle": "no",
+    "numbers_evenly_spaced": "yes",
+    "hand_count": "2",
+    "hands_originate_from_centre": "yes",
+    "shorter_hand_points_to": "10",
+    "longer_hand_points_to": "4",
+    "hands_same_length": "no"
+  },
+  "score": {
+    "circle": 1,
+    "numbers": 2,
+    "hands": 0,
+    "total": 3
+  }
+}

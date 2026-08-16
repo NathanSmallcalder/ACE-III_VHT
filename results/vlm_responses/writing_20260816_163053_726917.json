@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T16:30:53.728419",
+  "image_path": "I went for a lovely morning walk in the park near my house. Afterwards, I cooked a nice breakfast and read the newspaper.",
+  "raw_response": {
+    "transcription": "I went for a lovely morning walk in the park near my house. Afterwards, I cooked a nice breakfast and read the newspaper."
+  },
+  "score": {
+    "total": 2
+  }
+}

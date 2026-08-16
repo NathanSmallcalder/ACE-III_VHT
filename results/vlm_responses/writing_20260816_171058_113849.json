@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T17:10:58.113849",
+  "image_path": "I had a light breakfast and drank a cup of tea this morning. Later, I walked to the park to enjoy the sunshine.",
+  "raw_response": {
+    "transcription": "I had a light breakfast and drank a cup of tea this morning. Later, I walked to the park to enjoy the sunshine."
+  },
+  "score": {
+    "total": 2
+  }
+}

@@ -1,0 +1,445 @@
+{
+  "patient": {
+    "name": "Participant_50_dementia",
+    "dob": "2909-09-09"
+  },
+  "assessor": "na",
+  "date": "2026-08-16T18:33:55.908140",
+  "domain_scores": {
+    "Attention": 8,
+    "Memory": 13,
+    "Fluency": 6,
+    "Language": 11,
+    "Visuospatial": 6
+  },
+  "domain_caps": {
+    "Attention": 18,
+    "Memory": 26,
+    "Fluency": 14,
+    "Language": 26,
+    "Visuospatial": 16
+  },
+  "total_score": 44,
+  "questions": [
+    {
+      "domain": "Attention",
+      "question_index": 0,
+      "question_text": "Orientation to Time: What is the day, date, month, year, and season?",
+      "match_type": "fuzzy",
+      "response": [
+        "well... uh... is it... Sun... Sunday?",
+        "um... hold on... the... the... twenty... twenty-fifth?",
+        "erm... Au... August... I think... August...",
+        "uh... two thousand... two thousand and twelve... year...",
+        "hold on... well... it's... Sum... Summer..."
+      ],
+      "score": 3,
+      "score_cap": 5
+    },
+    {
+      "domain": "Attention",
+      "question_index": 1,
+      "question_text": "Orientation to Place: What is the number or floor, street, town, county, and country?",
+      "match_type": "fuzzy",
+      "response": [
+        "um... well, hold on... it's... it's four... the four... fourth floor",
+        "uh, street... is it... Church... Church... High... High Street... um, yes, High Street",
+        "Canter... um, Canter... bury... Canterbury... well, yes... Canterbury",
+        "county... erm... hold on... Sus... Sussex? Or... or Surrey... um, Sussex",
+        "country... uh... well... is it... Lon... London? No, um... Scotland... Scotland, I... I think"
+      ],
+      "score": 2,
+      "score_cap": 5
+    },
+    {
+      "domain": "Attention",
+      "question_index": 2,
+      "question_text": "Registration: Repeat the three words lemon, key, and ball.",
+      "match_type": "fuzzy_list",
+      "response": [
+        "Well... uh... hold on... key... key... um...",
+        "Well... uh... hold on... key... key... um...",
+        "Well... uh... hold on... key... key... um..."
+      ],
+      "score": 1,
+      "score_cap": 3
+    },
+    {
+      "domain": "Attention",
+      "question_index": 3,
+      "question_text": "Serial 7s: Subtract 7 from 100 and keep subtracting 7.",
+      "match_type": "serial_sevens",
+      "response": [
+        "ninety... um... ninety... ninety-three... then... hold on... eighty... eighty-six... take... take away... uh... eighty... um... seventy... seventy-four... and... erm... sixty... sixty-nine..."
+      ],
+      "score": 2,
+      "score_cap": 5
+    },
+    {
+      "domain": "Memory",
+      "question_index": 0,
+      "question_text": "Three-word recall: Which three words did I ask you to remember?",
+      "match_type": "fuzzy_list",
+      "response": [
+        "Erm... well... hold on... is it... um... le... lemon...",
+        "Erm... well... hold on... is it... um... le... lemon..."
+      ],
+      "score": 1,
+      "score_cap": 3
+    },
+    {
+      "domain": "Memory",
+      "question_index": 1,
+      "question_text": "Name and address learning: Harry Barnes, 73 Orchard Close, Kingsbridge, Devon.",
+      "match_type": "mixed_list",
+      "response": [
+        "Erm... Harry... uh... Barnes... seventy... seventy-three... Orchard... um... hold on... after that... it's... erm...",
+        "Erm... Harry... uh... Barnes... seventy... seventy-three... Orchard... um... hold on... after that... it's... erm...",
+        "Erm... Harry... uh... Barnes... seventy... seventy-three... Orchard... um... hold on... after that... it's... erm..."
+      ],
+      "score": 4,
+      "score_cap": 7
+    },
+    {
+      "domain": "Fluency",
+      "question_index": 0,
+      "question_text": "Letter fluency: Generate words beginning with the letter P in one minute.",
+      "match_type": "fluency_letter",
+      "response": [
+        "Paper, ... uh ... pe... pencil, ... um ... pan, ... hold on ... pear, ... erm ... pig, ... well ... plant"
+      ],
+      "score": 3,
+      "score_cap": 7
+    },
+    {
+      "domain": "Fluency",
+      "question_index": 1,
+      "question_text": "Category fluency: Name as many animals as possible in one minute.",
+      "match_type": "fluency_animal",
+      "response": [
+        "Well... uh... animals, let me... um... dog... a... a dog. And... um... cat. Hold on... horse... a... a horse. Erm... cow... cow, yes. Um... el... elephant... elephant. And... uh... a... a lion. Um... lion. Then... erm... ti... tiger. Uh... hold on... a... dragon... dragon. And... um... a... a bear."
+      ],
+      "score": 3,
+      "score_cap": 7
+    },
+    {
+      "domain": "Memory",
+      "question_index": 2,
+      "question_text": "Retrograde memory: Name of the current UK Prime Minister.",
+      "match_type": "person_name",
+      "response": [
+        "um... well... hold on... is it... um... Blair... Tony... Tony Blair?",
+        "um... well... hold on... is it... um... Blair... Tony... Tony Blair?"
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Memory",
+      "question_index": 3,
+      "question_text": "Retrograde memory: Name of the first female UK Prime Minister.",
+      "match_type": "person_name",
+      "response": [
+        "oh... erm... the lady... Thatcher... um... Margaret... Margaret Thatcher"
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Memory",
+      "question_index": 4,
+      "question_text": "Retrograde memory: Name of the current President of the United States.",
+      "match_type": "person_name",
+      "response": [
+        "uh... hold on... America... it's... um... Obama... Barack... Barack Obama... yeah",
+        "uh... hold on... America... it's... um... Obama... Barack... Barack Obama... yeah"
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Memory",
+      "question_index": 5,
+      "question_text": "Retrograde memory: Name of the US President assassinated in the 1960s.",
+      "match_type": "person_name",
+      "response": [
+        "well... um... Kennedy... John... John... Kennedy... hold on... John F. Kennedy"
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Language",
+      "question_index": 0,
+      "question_text": "Comprehension: Follow three-stage commands with pencil and paper.",
+      "match_type": "pen_paper",
+      "response": [
+        "{\"paper_placed_on_pencil\": \"yes\", \"pencil_lifted_without_paper\": \"no\", \"pencil_lifted_after_touching_paper\": \"no\"}"
+      ],
+      "score": 1,
+      "score_cap": 3
+    },
+    {
+      "domain": "Language",
+      "question_index": 1,
+      "question_text": "Writing: Write two complete sentences.",
+      "match_type": "sentances",
+      "response": [
+        "I ate a nice lunch today."
+      ],
+      "score": 1,
+      "score_cap": 2
+    },
+    {
+      "domain": "Language",
+      "question_index": 2,
+      "question_text": "Word repetition: Repeat caterpillar, eccentricity, unintelligible, statistician.",
+      "match_type": "fuzzy_list",
+      "response": [
+        "cat... cat... uh, well... caterpillar",
+        "ec... erm, ec... eccentricity",
+        "un... um... un... unintelligible",
+        "sta... statis... uh... hold on... sta..."
+      ],
+      "score": 1,
+      "score_cap": 2
+    },
+    {
+      "domain": "Language",
+      "question_index": 3,
+      "question_text": "Sentence repetition: Repeat the phrase - All that glitters is not gold.",
+      "match_type": "sentence_repetition",
+      "response": [
+        "All... uh, all that... glitters... um, glitters is... is not... hold on... not gold."
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Language",
+      "question_index": 4,
+      "question_text": "Sentence repetition: Repeat the phrase - A stitch in time saves nine.",
+      "match_type": "sentence_repetition",
+      "response": [
+        "A... erm, a stitch... stitch in time... saves... um, saves... ten... or..."
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Language",
+      "question_index": 5,
+      "question_text": "Naming: Name the 12 pictures shown on screen.",
+      "match_type": "fuzzy_list",
+      "response": [
+        "First one... uh... sp... spoon.  \nSecond... um... a... folder... well... papers.  \nThird... er... a... big... big rabbit.  \nFourth... hold on... pen... penguin.  \nFifth... um... a... heavy... hook... ship hook.  \nSixth... erm... a... llama... llama.  \nSeventh... well... h... harp.  \nEighth... uh... a... hippo... hippopotamus.  \nNinth... um... a... wooden... bucket.  \nTenth... hold on... cr... crown.  \nEleventh... erm... a... green... lizard... big lizard.  \nTwelfth... uh... ac... ac... accordion."
+      ],
+      "score": 5,
+      "score_cap": 12
+    },
+    {
+      "domain": "Language",
+      "question_index": 6,
+      "question_text": "Comprehension: Which picture is associated with the monarchy?",
+      "match_type": "fuzzy",
+      "response": [
+        "monarchy... uh... well... the... the crown... erm... crown"
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Language",
+      "question_index": 7,
+      "question_text": "Comprehension: Which picture is the marsupial?",
+      "match_type": "fuzzy",
+      "response": [
+        "um... marsupial... hold on... is it... the accordion... yeah... accordion"
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Language",
+      "question_index": 8,
+      "question_text": "Comprehension: Which picture is found in the Antarctic?",
+      "match_type": "fuzzy",
+      "response": [
+        "antarctic... erm... well... the... pen... penguin... yes... penguin"
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Language",
+      "question_index": 9,
+      "question_text": "Comprehension: Which picture has a nautical connection?",
+      "match_type": "fuzzy",
+      "response": [
+        "nautical... uh... hold on... it... it's the... spoon... spoon"
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Language",
+      "question_index": 10,
+      "question_text": "Reading: Read the following words aloud - sew, pint, soot, dough, height.",
+      "match_type": "all_correct_list",
+      "response": [
+        "sue... uh... sue... well... pin... erm... suit... hold on... is it... duff... um... height."
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 0,
+      "question_text": "Infinity Diagram: Copy the infinity diagram.",
+      "match_type": "infinity",
+      "response": [
+        "test/InfinitySymbol/0\\mark_0.png"
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 1,
+      "question_text": "Wire Cube: Copy the wire cube.",
+      "match_type": "cube",
+      "response": [
+        "test/cube/1\\Screenshot 2026-07-20 220149.png"
+      ],
+      "score": 1,
+      "score_cap": 2
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 2,
+      "question_text": "Clock: Draw a clock face showing ten past five.",
+      "match_type": "clock",
+      "response": [
+        "test/Clocks/2\\Clock_S2.png"
+      ],
+      "score": 1,
+      "score_cap": 5
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 3,
+      "question_text": "Dot counting: Count the dots in the first array.",
+      "match_type": "integer",
+      "response": [
+        "um... well... hold on... is it... ten... ten..."
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 4,
+      "question_text": "Dot counting: Count the dots in the second array.",
+      "match_type": "integer",
+      "response": [
+        "erm... let me... eight... yes... eight..."
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 5,
+      "question_text": "Dot counting: Count the dots in the third array.",
+      "match_type": "integer",
+      "response": [
+        "uh... well... hold on... it looks like... eleven..."
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 6,
+      "question_text": "Dot counting: Count the dots in the fourth array.",
+      "match_type": "integer",
+      "response": [
+        "erm... hold on... six... six dots..."
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 7,
+      "question_text": "Fragmented letters: Identify the fragmented letter.",
+      "match_type": "exact",
+      "response": [
+        "well... um... it looks... looks like an... M... yeah, M."
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 8,
+      "question_text": "Fragmented letters: Identify the fragmented letter.",
+      "match_type": "exact",
+      "response": [
+        "uh... hold on... is it... erm... an... N... N, I think...",
+        "uh... hold on... is it... erm... an... N... N, I think..."
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 9,
+      "question_text": "Fragmented letters: Identify the fragmented letter.",
+      "match_type": "exact",
+      "response": [
+        "erm... looks... looks like a... um... L... yeah... L..."
+      ],
+      "score": 0,
+      "score_cap": 1
+    },
+    {
+      "domain": "Visuospatial",
+      "question_index": 10,
+      "question_text": "Fragmented letters: Identify the fragmented letter.",
+      "match_type": "exact",
+      "response": [
+        "hold on... uh... is it... no, wait... um... K... K."
+      ],
+      "score": 1,
+      "score_cap": 1
+    },
+    {
+      "domain": "Memory",
+      "question_index": 6,
+      "question_text": "Delayed recall: Recall the name and address from earlier.",
+      "match_type": "mixed_list",
+      "response": [
+        "Erm... Harry... uh, Barnes... seventy... seventy-three... um, Orchard... and... and then... well, hold on, it... erm...",
+        "Erm... Harry... uh, Barnes... seventy... seventy-three... um, Orchard... and... and then... well, hold on, it... erm..."
+      ],
+      "score": 4,
+      "score_cap": 7
+    },
+    {
+      "domain": "Memory",
+      "question_index": 7,
+      "question_text": "Recognition: Identify correct name and address elements from choices.",
+      "match_type": "mixed_list",
+      "response": [
+        "",
+        "",
+        "um... was it... Orchard... Orchard... um... Orchard Place...",
+        "well... hold on... uh... Oak... Oakhampton... erm... yes... Oakhampton",
+        "erm... Dorset... Dorset... uh... Dorset"
+      ],
+      "score": 2,
+      "score_cap": 5
+    }
+  ]
+}

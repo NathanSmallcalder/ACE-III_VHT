@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T09:56:59.986063",
+  "image_path": "This morning I had a light breakfast and then took a walk in the garden.",
+  "raw_response": {
+    "transcription": "This morning I had a light breakfast and then took a walk in the garden."
+  },
+  "score": {
+    "total": 1
+  }
+}

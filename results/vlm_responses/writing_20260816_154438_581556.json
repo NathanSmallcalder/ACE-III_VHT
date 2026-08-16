@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T15:44:38.582554",
+  "image_path": "This morning I ate breakfast and went for a short walk. Later I worked in the garden until lunch.",
+  "raw_response": {
+    "transcription": "This morning I ate breakfast and went for a short walk. Later I worked in the garden until lunch."
+  },
+  "score": {
+    "total": 2
+  }
+}

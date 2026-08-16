@@ -34,6 +34,17 @@ items = [
 
 domains = ["attention_orientation", "memory", "fluency", "language", "visuospatial"]
 
+
+recognition_thresholds = [2, 3, 5, 6, 7]
+
+def recognition_floor(delayed_recall):
+    """Lowest recognition score that can co-exist with `delayed_recall`.
+    Recognition is only asked about address elements the participant failed to
+    recall; anything they did recall is auto-awarded its point. So a participant
+    who recalled all 7 elements must score the full 5 -- there is nothing left to
+    ask them."""
+    return sum(1 for threshold in recognition_thresholds if delayed_recall >= threshold)
+
 ranges = { # https://pmc.ncbi.nlm.nih.gov/articles/PMC12207243/pdf/ENE-32-e70257.pdf
     "healthy": (0.88, 1.00),
     "mci": (0.77, 0.87),
@@ -54,7 +65,9 @@ def make_profile(pid: str) -> dict:
         for item_name, _domain, max_pts in items:
             noisy_pct = max(0.0, min(1.0, random.gauss(base_ability, 0.05)))
             profile[item_name] = min(max_pts, round(noisy_pct * max_pts))
-            
+
+        profile["recognition"] = max(profile["recognition"], recognition_floor(profile["delayed_recall"]))
+
         # Aggregate domain totals (Attention, Memory, Fluency, Language, Visuospatial)
         for dom in domains:
             profile[dom] = sum(profile[item_name] for item_name, d, _ in items if d == dom)

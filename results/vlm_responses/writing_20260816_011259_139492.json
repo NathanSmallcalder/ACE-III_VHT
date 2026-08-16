@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T01:12:59.139492",
+  "image_path": "I had a nice cup of tea this morning.",
+  "raw_response": {
+    "transcription": "I had a nice cup of tea this morning."
+  },
+  "score": {
+    "total": 1
+  }
+}

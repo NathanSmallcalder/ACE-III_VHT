@@ -1,0 +1,14 @@
+{
+  "task": "infinity_diagram",
+  "timestamp": "2026-08-16T21:04:50.386287",
+  "image_path": "test/InfinitySymbol/0\\mark_0_1.png",
+  "raw_response": {
+    "figure_eight_count": 0,
+    "are_circles": "yes",
+    "figure_eights_overlap": "no",
+    "notes": "The drawing consists of four separate, roughly circular shapes connected by lines, not figure-eights."
+  },
+  "score": {
+    "total": 0
+  }
+}

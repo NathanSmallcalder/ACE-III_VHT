@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T16:14:07.047393",
+  "image_path": "I went for a walk in the park this morning. Afterward, I made a cup of tea and read the newspaper.",
+  "raw_response": {
+    "transcription": "I went for a walk in the park this morning. Afterward, I made a cup of tea and read the newspaper."
+  },
+  "score": {
+    "total": 2
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T12:09:05.108387",
+  "image_path": "I woke up early this morning and went for a brisk walk in the park. Afterwards, I enjoyed a quiet cup of coffee while reading the news.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and went for a brisk walk in the park. Afterwards, I enjoyed a quiet cup of coffee while reading the news."
+  },
+  "score": {
+    "total": 2
+  }
+}

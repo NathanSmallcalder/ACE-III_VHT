@@ -1,0 +1,14 @@
+{
+  "task": "infinity_diagram",
+  "timestamp": "2026-08-16T17:03:08.028296",
+  "image_path": "test/InfinitySymbol/0\\mark_0.png",
+  "raw_response": {
+    "figure_eight_count": 0,
+    "are_circles": "yes",
+    "figure_eights_overlap": "no",
+    "notes": "The drawing consists of four separate, overlapping circles, not figure-eights."
+  },
+  "score": {
+    "total": 0
+  }
+}

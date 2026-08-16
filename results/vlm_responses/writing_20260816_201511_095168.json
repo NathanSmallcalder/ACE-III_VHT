@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T20:15:11.095168",
+  "image_path": "A nice sunny day at the",
+  "raw_response": {
+    "transcription": "A nice sunny day at the"
+  },
+  "score": {
+    "total": 0
+  }
+}

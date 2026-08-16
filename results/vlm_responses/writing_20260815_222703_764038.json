@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-15T22:27:03.765542",
+  "image_path": "This morning I cooked a delicious breakfast for my family. Later today I plan to spend time working in my garden.",
+  "raw_response": {
+    "transcription": "This morning I cooked a delicious breakfast for my family. Later today I plan to spend time working in my garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

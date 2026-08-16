@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T15:48:51.696076",
+  "image_path": "I went for a walk in the garden today.",
+  "raw_response": {
+    "transcription": "I went for a walk in the garden today."
+  },
+  "score": {
+    "total": 1
+  }
+}

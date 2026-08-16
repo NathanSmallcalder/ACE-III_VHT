@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T20:00:12.259479",
+  "image_path": "I woke up early and made a nice cup of tea. Later today I plan to work in the garden.",
+  "raw_response": {
+    "transcription": "I woke up early and made a nice cup of tea. Later today I plan to work in the garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

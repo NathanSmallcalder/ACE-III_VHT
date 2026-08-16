@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T12:52:49.906249",
+  "image_path": "I took a long walk in the park this morning. Afterwards, I made a fresh salad for lunch and enjoyed a hot cup of tea.",
+  "raw_response": {
+    "transcription": "I took a long walk in the park this morning. Afterwards, I made a fresh salad for lunch and enjoyed a hot cup of tea."
+  },
+  "score": {
+    "total": 2
+  }
+}

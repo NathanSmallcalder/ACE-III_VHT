@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T13:30:15.246189",
+  "image_path": "I had oatmeal and fruit for breakfast this morning. Then I went outside to water the plants in my garden.",
+  "raw_response": {
+    "transcription": "I had oatmeal and fruit for breakfast this morning. Then I went outside to water the plants in my garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

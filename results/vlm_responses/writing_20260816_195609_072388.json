@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T19:56:09.073388",
+  "image_path": "I ate breakfast with my wife early this morning. Afterwards I decided to take a short walk outside.",
+  "raw_response": {
+    "transcription": "I ate breakfast with my wife early this morning. Afterwards I decided to take a short walk outside."
+  },
+  "score": {
+    "total": 2
+  }
+}

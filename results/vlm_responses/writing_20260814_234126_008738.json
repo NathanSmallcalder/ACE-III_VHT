@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T23:41:26.009240",
+  "image_path": "I went to the grocery store this morning and picked up fresh vegetables for dinner. This afternoon I spent time reading a book in my garden while enjoying the warm weather.",
+  "raw_response": {
+    "transcription": "I went to the grocery store this morning and picked up fresh vegetables for dinner. This afternoon I spent time reading a book in my garden while enjoying the warm weather."
+  },
+  "score": {
+    "total": 2
+  }
+}

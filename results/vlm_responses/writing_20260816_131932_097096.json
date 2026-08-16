@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T13:19:32.097096",
+  "image_path": "I woke up early this morning and made a delicious pot of coffee. Afterwards, I went for a long walk in the park.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and made a delicious pot of coffee. Afterwards, I went for a long walk in the park."
+  },
+  "score": {
+    "total": 2
+  }
+}

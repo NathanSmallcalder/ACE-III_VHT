@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T00:32:33.386670",
+  "image_path": "I woke up early and ate a light breakfast. After that, I took a walk around the neighborhood.",
+  "raw_response": {
+    "transcription": "I woke up early and ate a light breakfast. After that, I took a walk around the neighborhood."
+  },
+  "score": {
+    "total": 2
+  }
+}

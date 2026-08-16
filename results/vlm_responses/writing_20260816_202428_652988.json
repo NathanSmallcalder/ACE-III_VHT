@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T20:24:28.652988",
+  "image_path": "I woke up early this morning and made a fresh cup of coffee. Later in the afternoon, I went for a long walk in the park near my house.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and made a fresh cup of coffee. Later in the afternoon, I went for a long walk in the park near my house."
+  },
+  "score": {
+    "total": 2
+  }
+}

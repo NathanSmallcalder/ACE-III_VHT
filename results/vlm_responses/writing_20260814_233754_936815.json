@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T23:37:54.937820",
+  "image_path": "I had a nice breakfast this morning and then spent some time reading the newspaper. The rest of my day was spent doing some gardening and visiting with my neighbor.",
+  "raw_response": {
+    "transcription": "I had a nice breakfast this morning and then spent some time reading the newspaper. The rest of my day was spent doing some gardening and visiting with my neighbor."
+  },
+  "score": {
+    "total": 2
+  }
+}

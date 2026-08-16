@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T22:47:05.371469",
+  "image_path": "I went to the park this morning for a long walk. The weather was beautiful and the birds were singing.",
+  "raw_response": {
+    "transcription": "I went to the park this morning for a long walk. The weather was beautiful and the birds were singing."
+  },
+  "score": {
+    "total": 2
+  }
+}

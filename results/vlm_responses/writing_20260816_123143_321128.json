@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T12:31:43.321128",
+  "image_path": "I woke up early this morning and cooked a healthy breakfast. Afterwards, I went for a long walk in the neighborhood park.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and cooked a healthy breakfast. Afterwards, I went for a long walk in the neighborhood park."
+  },
+  "score": {
+    "total": 2
+  }
+}

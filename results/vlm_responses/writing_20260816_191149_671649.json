@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T19:11:49.671649",
+  "image_path": "I ate oatmeal for breakfast this morning. After that, I took a short walk around the neighborhood.",
+  "raw_response": {
+    "transcription": "I ate oatmeal for breakfast this morning. After that, I took a short walk around the neighborhood."
+  },
+  "score": {
+    "total": 2
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T22:43:13.685323",
+  "image_path": "I went to the store today. The weather was very nice.",
+  "raw_response": {
+    "transcription": "I went to the store today. The weather was very nice."
+  },
+  "score": {
+    "total": 2
+  }
+}

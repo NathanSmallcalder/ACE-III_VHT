@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T00:44:18.853328",
+  "image_path": "I had a light breakfast and watered the plants in the garden. Later, my daughter dropped by to bring me some groceries.",
+  "raw_response": {
+    "transcription": "I had a light breakfast and watered the plants in the garden. Later, my daughter dropped by to bring me some groceries."
+  },
+  "score": {
+    "total": 2
+  }
+}

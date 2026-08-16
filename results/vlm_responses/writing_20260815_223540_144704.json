@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-15T22:35:40.144704",
+  "image_path": "I went for a short walk in the garden this morning. Later, I had a nice cup of tea with my neighbor.",
+  "raw_response": {
+    "transcription": "I went for a short walk in the garden this morning. Later, I had a nice cup of tea with my neighbor."
+  },
+  "score": {
+    "total": 2
+  }
+}

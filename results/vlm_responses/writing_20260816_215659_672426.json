@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T21:56:59.672426",
+  "image_path": "This morning I went for a nice walk around the neighborhood. Later today I plan to work on my garden.",
+  "raw_response": {
+    "transcription": "This morning I went for a nice walk around the neighborhood. Later today I plan to work on my garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

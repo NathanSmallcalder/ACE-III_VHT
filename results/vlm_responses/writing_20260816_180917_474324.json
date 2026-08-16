@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T18:09:17.475324",
+  "image_path": "I ate a nice breakfast of toast and oatmeal this morning. Later today I plan to take a short walk around the neighborhood.",
+  "raw_response": {
+    "transcription": "I ate a nice breakfast of toast and oatmeal this morning. Later today I plan to take a short walk around the neighborhood."
+  },
+  "score": {
+    "total": 2
+  }
+}

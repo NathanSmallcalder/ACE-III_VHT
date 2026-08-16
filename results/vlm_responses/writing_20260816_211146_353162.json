@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T21:11:46.353162",
+  "image_path": "I ate a light breakfast with my spouse this morning. Later, I spent an hour reading in the garden.",
+  "raw_response": {
+    "transcription": "I ate a light breakfast with my spouse this morning. Later, I spent an hour reading in the garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

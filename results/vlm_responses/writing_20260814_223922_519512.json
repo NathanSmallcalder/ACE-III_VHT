@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T22:39:22.520512",
+  "image_path": "I went to the store today. It was quite a busy morning.",
+  "raw_response": {
+    "transcription": "I went to the store today. It was quite a busy morning."
+  },
+  "score": {
+    "total": 2
+  }
+}

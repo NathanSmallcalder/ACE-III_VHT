@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T22:50:13.080276",
+  "image_path": "I woke up early today to enjoy a long walk in the park. The weather was perfect for spending time outside with my friends.",
+  "raw_response": {
+    "transcription": "I woke up early today to enjoy a long walk in the park. The weather was perfect for spending time outside with my friends."
+  },
+  "score": {
+    "total": 2
+  }
+}

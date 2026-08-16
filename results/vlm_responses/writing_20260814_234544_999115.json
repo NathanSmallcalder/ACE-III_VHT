@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T23:45:45.000116",
+  "image_path": "I went to the grocery store this morning and bought some vegetables. The weather was nice so I took a walk in the park.",
+  "raw_response": {
+    "transcription": "I went to the grocery store this morning and bought some vegetables. The weather was nice so I took a walk in the park."
+  },
+  "score": {
+    "total": 1
+  }
+}

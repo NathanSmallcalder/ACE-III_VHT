@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-15T22:14:03.473814",
+  "image_path": "I had a nice cup of tea this morning before my appointment. Later, I plan to work on my garden.",
+  "raw_response": {
+    "transcription": "I had a nice cup of tea this morning before my appointment. Later, I plan to work on my garden."
+  },
+  "score": {
+    "total": 2
+  }
+}

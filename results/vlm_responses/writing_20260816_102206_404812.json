@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T10:22:06.404812",
+  "image_path": "I woke up early this morning and took my dog for a walk in the park. Afterwards, I made a fresh cup of coffee and read the morning newspaper.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and took my dog for a walk in the park. Afterwards, I made a fresh cup of coffee and read the morning newspaper."
+  },
+  "score": {
+    "total": 2
+  }
+}

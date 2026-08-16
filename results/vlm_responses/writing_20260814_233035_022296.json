@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-14T23:30:35.023297",
+  "image_path": "I went to the doctor this morning for my appointment. Later I had lunch with my wife at our favorite restaurant.",
+  "raw_response": {
+    "transcription": "I went to the doctor this morning for my appointment. Later I had lunch with my wife at our favorite restaurant."
+  },
+  "score": {
+    "total": 2
+  }
+}

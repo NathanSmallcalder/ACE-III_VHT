@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T12:28:16.489300",
+  "image_path": "I went for a walk in the park this morning. Later, I ate lunch with my daughter.",
+  "raw_response": {
+    "transcription": "I went for a walk in the park this morning. Later, I ate lunch with my daughter."
+  },
+  "score": {
+    "total": 2
+  }
+}
