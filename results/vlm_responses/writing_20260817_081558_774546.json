@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T08:15:58.774546",
+  "image_path": "I ate a bowl of oatmeal for breakfast this morning. Afterward, I walked through the garden to enjoy the sunshine.",
+  "raw_response": {
+    "transcription": "I ate a bowl of oatmeal for breakfast this morning. Afterward, I walked through the garden to enjoy the sunshine."
+  },
+  "score": {
+    "total": 2
+  }
+}

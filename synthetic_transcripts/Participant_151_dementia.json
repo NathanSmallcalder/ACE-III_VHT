@@ -1,0 +1,308 @@
+{
+  "participant_id": "Participant_151",
+  "cognitive_status": "dementia",
+  "Attention": [
+    {
+      "Question": "Orientation to Time: What day of the week is it?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "well... um... it's... Sun... Sun... day... yes, Sun... day"
+    },
+    {
+      "Question": "Orientation to Time: What is today's date?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "is it... er... hold on... the... the... fourth... maybe... four..."
+    },
+    {
+      "Question": "Orientation to Time: What month is it?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "erm... Au... Au... gust... well, it's... August, I think..."
+    },
+    {
+      "Question": "Orientation to Time: What year is it?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "nineteen... um... nineteen... ninety... ninety-four... yeah..."
+    },
+    {
+      "Question": "Orientation to Time: What season is it?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "hold on... it's... it's warm... Sum... Summer... um... Summer..."
+    },
+    {
+      "Question": "Orientation to Place: Which number or floor is this?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "um... well... we are... we are on... floor 4... yeah... 4..."
+    },
+    {
+      "Question": "Orientation to Place: Which street is this?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "is it... hold on... Hos... Hospital... Hospital Road... I think... um... Hospital Road"
+    },
+    {
+      "Question": "Orientation to Place: Which town are we in?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "Cant... Canter... um... canterbury... yes... canterbury"
+    },
+    {
+      "Question": "Orientation to Place: Which county are we in?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "erm... well... it's... Sussex... no... um... Sur... Surrey... yeah... Surrey"
+    },
+    {
+      "Question": "Orientation to Place: Which country are we in?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "well... the... the country... is it... um... Scot... Scotland... I think... Scotland"
+    },
+    {
+      "Question": "Registration: Repeat the three words lemon, key, and ball.",
+      "Score_Cap": 3,
+      "Ground_Truth": 2,
+      "Answered": "lem... uh, lemon... well... and, um... hold on... b... bar... no wait, ball."
+    },
+    {
+      "Question": "Serial 7s: Subtract 7 from 100 and keep subtracting 7.",
+      "Score_Cap": 5,
+      "Ground_Truth": 3,
+      "Answered": "um... ninety... ninety-three... well... hold on... eighty... eighty-six... erm... seventy... seventy-nine... um... is it... seventy... seventy-four... uh... sixty... sixty-eight..."
+    }
+  ],
+  "Memory": [
+    {
+      "Question": "Three-word recall: Which three words did I ask you to remember?",
+      "Score_Cap": 3,
+      "Ground_Truth": 2,
+      "Answered": "Erm... well... le... lemon... and... uh... hold on... is it... um... ba... ball..."
+    },
+    {
+      "Question": "Name and address learning: Harry Barnes, 73 Orchard Close, Kingsbridge, Devon.",
+      "Score_Cap": 7,
+      "Ground_Truth": 4,
+      "Answered": "Erm... well... it was... um... Harry... Har... Harry... Barnes... seventy... seventy-three... uh... Orchard... erm... Orchard... oh... I... I can't... hold on... it's... gone..."
+    },
+    {
+      "Question": "Retrograde memory: Name of the current UK Prime Minister.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "um... well... it's... uh, Andy... Andy... hold on... Burnham, yes... Andy Burnham."
+    },
+    {
+      "Question": "Retrograde memory: Name of the first female UK Prime Minister.",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "oh... erm... the lady... it was... um, Theresa... Theresa... May... I think... well, May..."
+    },
+    {
+      "Question": "Retrograde memory: Name of the current President of the United States.",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "is it... hmmmm... the... uh, president... Barack... Barack... um... Obama... yes... Obama..."
+    },
+    {
+      "Question": "Retrograde memory: Name of the US President assassinated in the 1960s.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "well... he was... Kennedy... um... John... John F... F. Kennedy... hold on... yes, Kennedy."
+    }
+  ],
+  "Fluency": [
+    {
+      "Question": "Letter fluency: Generate words beginning with the letter P in one minute.",
+      "Score_Cap": 7,
+      "Ground_Truth": 4,
+      "Answered": "Erm... paper, ... uh, pen, ... hold on... p... pear, ... well... pi... piano, ... um, pig, ... pl... plant, ... post, ... p... pot, ... plate"
+    },
+    {
+      "Question": "Category fluency: Name as many animals as possible in one minute.",
+      "Score_Cap": 7,
+      "Ground_Truth": 4,
+      "Answered": "Um... well... a... a... dog... yes, dog. And... erm... cat... cat. Hold on... hor... horse. Uh... a... a... cow... cow. Erm... pig... pig... p... pig. Well... sheep... sheep. Uh... lion... li... lion. And... erm... ti... tiger. Hold on... el... el... elephant. Erm... bear... bear. Uh... rab... rabbit... rabbit. And... well... a... dra... dragon... dragon."
+    }
+  ],
+  "Language": [
+    {
+      "Question": "Comprehension: Follow three-stage commands with pencil and paper.",
+      "Score_Cap": 3,
+      "Ground_Truth": 2,
+      "Answered": "{\"paper_placed_on_pencil\": \"yes\", \"pencil_lifted_without_paper\": \"yes\", \"pencil_lifted_after_touching_paper\": \"no\"}"
+    },
+    {
+      "Question": "Writing: Write two complete sentences.",
+      "Score_Cap": 2,
+      "Ground_Truth": 1,
+      "Answered": "I had toast and tea for breakfast today."
+    },
+    {
+      "Question": "Word repetition: Repeat after me - caterpillar.",
+      "Score_Cap": 0,
+      "Ground_Truth": 1,
+      "Answered": "um... cat... cat... caterpillar"
+    },
+    {
+      "Question": "Word repetition: Repeat after me - eccentricity.",
+      "Score_Cap": 0,
+      "Ground_Truth": 1,
+      "Answered": "well... ec... eccentricity"
+    },
+    {
+      "Question": "Word repetition: Repeat after me - unintelligible.",
+      "Score_Cap": 0,
+      "Ground_Truth": 0,
+      "Answered": "un... un... uh... unintel... erm... hold on..."
+    },
+    {
+      "Question": "Word repetition: Repeat after me - statistician.",
+      "Score_Cap": 2,
+      "Ground_Truth": 1,
+      "Answered": "st... stat... statistician... um..."
+    },
+    {
+      "Question": "Sentence repetition: Repeat the phrase - All that glitters is not gold.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "All... all that... um... glitters... is... well, is... is not... gold."
+    },
+    {
+      "Question": "Sentence repetition: Repeat the phrase - A stitch in time saves nine.",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "A... a stitch... in... in time... um... saves... saves... five..."
+    },
+    {
+      "Question": "Naming: Name the 12 pictures shown on screen.",
+      "Score_Cap": 12,
+      "Ground_Truth": 7,
+      "Answered": "uh... well... it's a... a sp... spoon... and... b... book... yes, a book... um... hold on... it's a... a rab... rabbit... erm... penguin... p... penguin... uh... is it... a h... hook... well... camel... c... camel... um... a g... guitar... erm... hold on... rhino... r... rhinoceros... uh... a wooden... box... b... box... c... crown... a gold... crown... um... a big... liz... lizard... well... ac... accordion... um... accordion..."
+    },
+    {
+      "Question": "Comprehension: Which picture is associated with the monarchy?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "mon... monarchy... uh... well... hold on... the... cr... crown... yeah... the crown"
+    },
+    {
+      "Question": "Comprehension: Which picture is the marsupial?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "mar... mar... marsupial... erm... is it... is it the... sp... spoon... well... spoon"
+    },
+    {
+      "Question": "Comprehension: Which picture is found in the Antarctic?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "ant... antarctic... um... hold on... the... pen... penguin... yes... penguin"
+    },
+    {
+      "Question": "Comprehension: Which picture has a nautical connection?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "nau... nautical... uh... well... the... ac... accordion... erm... accordion"
+    },
+    {
+      "Question": "Reading: Read the following words aloud - sew, pint, soot, dough, height.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "um... sew... sew... well... pint... erm... hold on... soot... uh... dough... dough... and... height"
+    }
+  ],
+  "Visuospatial": [
+    {
+      "Question": "Infinity Diagram: Copy the infinity diagram.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "test/InfinitySymbol/1\\Screenshot 2026-07-19 220820.png"
+    },
+    {
+      "Question": "Wire Cube: Copy the wire cube.",
+      "Score_Cap": 2,
+      "Ground_Truth": 1,
+      "Answered": "test/cube/1\\Screenshot 2026-07-20 220116.png"
+    },
+    {
+      "Question": "Clock: Draw a clock face showing ten past five.",
+      "Score_Cap": 5,
+      "Ground_Truth": 3,
+      "Answered": "test/Clocks/3\\Clock_3_3.png"
+    },
+    {
+      "Question": "Dot counting: Count the dots in the first array.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "well... uh... let's see... ten... um... is it... ten..."
+    },
+    {
+      "Question": "Dot counting: Count the dots in the second array.",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "erm... hold on... six... no, wait... seven... uh... seven..."
+    },
+    {
+      "Question": "Dot counting: Count the dots in the third array.",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "um... looks like... eleven... no, wait... uh... ten..."
+    },
+    {
+      "Question": "Dot counting: Count the dots in the fourth array.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "hold on... uh... seve... seven... yes... seven..."
+    },
+    {
+      "Question": "Fragmented letters: Identify the fragmented letter.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "um... looks like... well... M... yes, it's an... M..."
+    },
+    {
+      "Question": "Fragmented letters: Identify the fragmented letter.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "erm... hold on... is it... A... ah... A..."
+    },
+    {
+      "Question": "Fragmented letters: Identify the fragmented letter.",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "well... uh... looks... looks like a... a... I... or maybe... L... yes, L..."
+    },
+    {
+      "Question": "Fragmented letters: Identify the fragmented letter.",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "hold on... K... um... K... yeah..."
+    },
+    {
+      "Question": "Delayed recall: Recall the name and address from earlier.",
+      "Score_Cap": 7,
+      "Ground_Truth": 4,
+      "Answered": "uh... well... Harry... Harry... um... B... Barnes... yes, Barnes... seventy... seventy-three... Orchard... um... Orchard... hold on... the... the rest is... it's... um... gone..."
+    },
+    {
+      "Question": "Recognition: Was the street Orchard Place, Oak Close, or Orchard Close?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "um... well... it... it was... Oak... Oak... Oak Close... I think... Oak Close"
+    },
+    {
+      "Question": "Recognition: Was the town Oakhampton, Kingsbridge, or Dartington?",
+      "Score_Cap": 1,
+      "Ground_Truth": 1,
+      "Answered": "hold on... erm... Kings... Kings... bridge... yeah, Kingsbridge"
+    },
+    {
+      "Question": "Recognition: Was the county Devon, Dorset, or Somerset?",
+      "Score_Cap": 1,
+      "Ground_Truth": 0,
+      "Answered": "uh... Dor... Dorset... maybe... Dorset... um... yeah"
+    }
+  ]
+}

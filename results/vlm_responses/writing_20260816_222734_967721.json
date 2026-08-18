@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T22:27:34.968721",
+  "image_path": "I ate a light breakfast of oatmeal and tea this morning. Then my neighbor came over to help me water the plants.",
+  "raw_response": {
+    "transcription": "I ate a light breakfast of oatmeal and tea this morning. Then my neighbor came over to help me water the plants."
+  },
+  "score": {
+    "total": 2
+  }
+}

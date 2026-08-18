@@ -1,0 +1,13 @@
+{
+  "task": "wire_cube",
+  "timestamp": "2026-08-17T04:42:41.004765",
+  "image_path": "test/cube/1\\Screenshot 2026-07-20 220142.png",
+  "raw_response": {
+    "all_edges_present": "yes",
+    "general_cube_shape": "yes",
+    "notes": "none"
+  },
+  "score": {
+    "total": 2
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T04:53:24.279186",
+  "image_path": "I woke up early this morning and enjoyed a fresh cup of coffee. After breakfast, I took a pleasant walk through the park.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and enjoyed a fresh cup of coffee. After breakfast, I took a pleasant walk through the park."
+  },
+  "score": {
+    "total": 2
+  }
+}

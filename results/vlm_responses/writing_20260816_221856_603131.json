@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T22:18:56.604132",
+  "image_path": "I ate a delicious breakfast of oatmeal and berries this morning. Afterward, I went for a short walk in the garden with my neighbor.",
+  "raw_response": {
+    "transcription": "I ate a delicious breakfast of oatmeal and berries this morning. Afterward, I went for a short walk in the garden with my neighbor."
+  },
+  "score": {
+    "total": 2
+  }
+}

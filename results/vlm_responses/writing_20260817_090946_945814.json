@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T09:09:46.945814",
+  "image_path": "I went for a walk in the garden this morning. After lunch, I read a book in the living room.",
+  "raw_response": {
+    "transcription": "I went for a walk in the garden this morning. After lunch, I read a book in the living room."
+  },
+  "score": {
+    "total": 2
+  }
+}

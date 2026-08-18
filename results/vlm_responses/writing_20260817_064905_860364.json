@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T06:49:05.861363",
+  "image_path": "I had a nice cup of tea with my breakfast this morning. Then I went for a short walk down the street.",
+  "raw_response": {
+    "transcription": "I had a nice cup of tea with my breakfast this morning. Then I went for a short walk down the street."
+  },
+  "score": {
+    "total": 2
+  }
+}

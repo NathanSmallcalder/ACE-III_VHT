@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T07:40:19.523404",
+  "image_path": "I woke up early this morning and enjoyed a nice cup of coffee. Later in the afternoon, I went for a relaxing walk through the park.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and enjoyed a nice cup of coffee. Later in the afternoon, I went for a relaxing walk through the park."
+  },
+  "score": {
+    "total": 2
+  }
+}

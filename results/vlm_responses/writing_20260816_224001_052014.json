@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T22:40:01.053017",
+  "image_path": "I had a nice breakfast of toast and coffee this morning. Afterward I went out into the garden to water the flowers.",
+  "raw_response": {
+    "transcription": "I had a nice breakfast of toast and coffee this morning. Afterward I went out into the garden to water the flowers."
+  },
+  "score": {
+    "total": 2
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "task": "infinity_diagram",
+  "timestamp": "2026-08-18T20:32:41.574258",
+  "image_path": "C:\\Users\\nsmal\\ace\\test\\InfinitySymbol\\0\\mark_0_1.png",
+  "raw_response": {
+    "figure_eight_count": 2,
+    "are_circles": "no",
+    "figure_eights_overlap": "yes",
+    "notes": "Four rounded lobes with crossing points at the left and right waists; the two middle lobes only slightly overlap and one crossing shows a stray tail line."
+  },
+  "score": {
+    "total": 1
+  }
+}

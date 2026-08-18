@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T06:44:55.659941",
+  "image_path": "I woke up early this morning and enjoyed a quiet cup of coffee on the porch. Afterwards, I went for a lovely walk through the neighborhood park.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and enjoyed a quiet cup of coffee on the porch. Afterwards, I went for a lovely walk through the neighborhood park."
+  },
+  "score": {
+    "total": 2
+  }
+}

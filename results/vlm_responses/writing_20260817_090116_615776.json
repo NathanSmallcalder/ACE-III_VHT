@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T09:01:16.617278",
+  "image_path": "I woke up early this morning and enjoyed a nice cup of coffee. Then, I walked to the clinic for my checkup.",
+  "raw_response": {
+    "transcription": "I woke up early this morning and enjoyed a nice cup of coffee. Then, I walked to the clinic for my checkup."
+  },
+  "score": {
+    "total": 2
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-16T22:22:47.640682",
+  "image_path": "I ate a slice of toast and drank a cup of coffee for breakfast. Afterward, I took a pleasant walk through the neighborhood park.",
+  "raw_response": {
+    "transcription": "I ate a slice of toast and drank a cup of coffee for breakfast. Afterward, I took a pleasant walk through the neighborhood park."
+  },
+  "score": {
+    "total": 2
+  }
+}

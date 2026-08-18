@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T09:14:47.708000",
+  "image_path": "I had a quiet walk in the garden this morning.",
+  "raw_response": {
+    "transcription": "I had a quiet walk in the garden this morning."
+  },
+  "score": {
+    "total": 1
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-17T06:57:16.438358",
+  "image_path": "I ate oatmeal with fresh berries for breakfast this morning. Afterward, I walked in the garden with my neighbor.",
+  "raw_response": {
+    "transcription": "I ate oatmeal with fresh berries for breakfast this morning. Afterward, I walked in the garden with my neighbor."
+  },
+  "score": {
+    "total": 2
+  }
+}
