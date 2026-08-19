@@ -1,0 +1,14 @@
+{
+  "task": "pen_paper",
+  "timestamp": "2026-08-19T18:05:32.230894",
+  "image_path": "C:\\Users\\nsmal\\ace\\visual_tasks\\..\\data\\videos\\pen_paper.mp4",
+  "raw_response": {
+    "paper_placed_on_pencil": "unclear",
+    "pencil_lifted_without_paper": "yes",
+    "pencil_lifted_after_touching_paper": "unclear",
+    "notes": "The object appears to be a marker, not a pencil, and the paper is not clearly shown placed on any object."
+  },
+  "score": {
+    "total": 1
+  }
+}

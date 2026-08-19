@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-19T23:23:49.611468",
+  "image_path": "I ate my breakfast this morning.",
+  "raw_response": {
+    "transcription": "I ate my breakfast this morning."
+  },
+  "score": {
+    "total": 1
+  }
+}

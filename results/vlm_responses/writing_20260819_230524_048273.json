@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-19T23:05:24.048273",
+  "image_path": "I ate a bowl of porridge for my breakfast today. Afterwards I sat by the window and watched the birds.",
+  "raw_response": {
+    "transcription": "I ate a bowl of porridge for my breakfast today. Afterwards I sat by the window and watched the birds."
+  },
+  "score": {
+    "total": 2
+  }
+}

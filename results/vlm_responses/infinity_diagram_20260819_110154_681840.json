@@ -1,0 +1,14 @@
+{
+  "task": "infinity_diagram",
+  "timestamp": "2026-08-19T11:01:54.682361",
+  "image_path": "test/InfinitySymbol/0\\mark_0.png",
+  "raw_response": {
+    "figure_eight_count": 0,
+    "loops_cross_at_intersection": "no",
+    "figure_eights_overlap": "no",
+    "notes": "The drawing consists of four separate, roughly circular shapes that touch or overlap slightly, but do not form any figure-eight or infinity symbols."
+  },
+  "score": {
+    "total": 0
+  }
+}

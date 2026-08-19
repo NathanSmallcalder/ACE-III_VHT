@@ -1,0 +1,14 @@
+{
+  "task": "infinity_diagram",
+  "timestamp": "2026-08-19T10:50:26.916525",
+  "image_path": "test/InfinitySymbol/0\\mark_0_1.png",
+  "raw_response": {
+    "figure_eight_count": 1,
+    "loops_cross_at_intersection": "no",
+    "figure_eights_overlap": "no",
+    "notes": "The drawing shows four separate, roughly oval shapes connected in a row, not two interlocking figure-eights."
+  },
+  "score": {
+    "total": 0
+  }
+}

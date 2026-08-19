@@ -1,0 +1,14 @@
+{
+  "task": "infinity_diagram",
+  "timestamp": "2026-08-19T11:08:52.268788",
+  "image_path": "test/InfinitySymbol/1\\Screenshot 2026-07-19 220836.png",
+  "raw_response": {
+    "figure_eight_count": 2,
+    "loops_cross_at_intersection": "yes",
+    "figure_eights_overlap": "yes",
+    "notes": "none"
+  },
+  "score": {
+    "total": 1
+  }
+}

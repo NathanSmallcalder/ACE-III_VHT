@@ -1,0 +1,11 @@
+{
+  "task": "writing",
+  "timestamp": "2026-08-19T23:18:33.288364",
+  "image_path": "I had toast and tea for breakfast today.",
+  "raw_response": {
+    "transcription": "I had toast and tea for breakfast today."
+  },
+  "score": {
+    "total": 1
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "task": "infinity_diagram",
+  "timestamp": "2026-08-19T23:15:31.093530",
+  "image_path": "test/InfinitySymbol/1\\Screenshot 2026-07-19 220820.png",
+  "raw_response": {
+    "figure_eight_count": 2,
+    "loops_cross_at_intersection": "yes",
+    "figure_eights_overlap": "yes",
+    "notes": "The drawing is a single continuous line forming two interlocking figure-eights."
+  },
+  "score": {
+    "total": 1
+  }
+}
