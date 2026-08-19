@@ -6,7 +6,7 @@
   "assessor": "na",
   "date": "2026-08-16T18:43:44.306041",
   "domain_scores": {
-    "Attention": 8,
+    "Attention": 9,
     "Memory": 14,
     "Fluency": 6,
     "Language": 14,
@@ -19,7 +19,7 @@
     "Language": 26,
     "Visuospatial": 16
   },
-  "total_score": 50,
+  "total_score": 51,
   "questions": [
     {
       "domain": "Attention",
@@ -74,7 +74,7 @@
       "response": [
         "Well... 100 take away seven... um... is... ninety... ninety-three... then... erm... hold on... eighty... eighty-six... and... uh... seventy... seventy-nine... take away seven... um... seventy... seventy-four... and... hold on... sixty... sixty-eight."
       ],
-      "score": 2,
+      "score": 3,
       "score_cap": 5
     },
     {

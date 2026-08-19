@@ -572,6 +572,9 @@ def advance_node(state: ACEState) -> dict:
             "previous_task_signature": previous_task_signature,
         }
 
+    result = {**result, "needs_repeat": False, "repeat_count": 0,
+              "reprompt_kind": None, "turn_progress": 0}
+
     # Auto-save progress pointing at the upcoming state
     save_progress({**state, **result})
     return result
@@ -583,10 +586,12 @@ def report_node(state: ACEState) -> dict:
     """
     Finishes the ACE-III test reports the scores. Generates a JSON file and ends the session
     """
-    scores = state["scores"]
-    total = sum(scores.values())
     # Log the final question since advance_node gets skipped on the last turn
     question_log = state.get("question_log", []) + [question_record(state)]
+    scores = {domain: 0 for domain in ace_json}
+    for record in question_log:
+        scores[record["domain"]] += record["score"]
+    total = sum(scores.values())
     # Console summary output
     print("\n--- ACE-III Complete ---")
     for domain, score in scores.items():

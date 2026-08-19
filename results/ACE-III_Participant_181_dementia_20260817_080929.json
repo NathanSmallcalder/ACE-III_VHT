@@ -6,7 +6,7 @@
   "assessor": "na",
   "date": "2026-08-17T08:09:29.650251",
   "domain_scores": {
-    "Attention": 7,
+    "Attention": 10,
     "Memory": 13,
     "Fluency": 7,
     "Language": 14,
@@ -19,7 +19,7 @@
     "Language": 26,
     "Visuospatial": 16
   },
-  "total_score": 50,
+  "total_score": 53,
   "questions": [
     {
       "domain": "Attention",
@@ -72,7 +72,7 @@
       "response": [
         "um... ninety... ninety... three... then... erm... eighty... eigh... eighty-six... hold on... seventy... seventy-nine... uh... is it... seventy... seventy-three... and... well... sixty... sixty-three..."
       ],
-      "score": 0,
+      "score": 3,
       "score_cap": 5
     },
     {

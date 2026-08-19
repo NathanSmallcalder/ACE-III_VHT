@@ -6,11 +6,11 @@
   "assessor": "na",
   "date": "2026-08-17T08:14:16.799510",
   "domain_scores": {
-    "Attention": 14,
+    "Attention": 16,
     "Memory": 22,
     "Fluency": 12,
     "Language": 23,
-    "Visuospatial": 10
+    "Visuospatial": 11
   },
   "domain_caps": {
     "Attention": 18,
@@ -19,7 +19,7 @@
     "Language": 26,
     "Visuospatial": 16
   },
-  "total_score": 81,
+  "total_score": 84,
   "questions": [
     {
       "domain": "Attention",
@@ -70,7 +70,7 @@
       "response": [
         "Okay, starting from 100... minus 7 is... 93... then, um, 86... take away another 7... 79... then 72... and... let me think... 64."
       ],
-      "score": 2,
+      "score": 4,
       "score_cap": 5
     },
     {
@@ -296,7 +296,7 @@
       "response": [
         "test/InfinitySymbol/1\\Screenshot 2026-07-19 220836.png"
       ],
-      "score": 0,
+      "score": 1,
       "score_cap": 1
     },
     {

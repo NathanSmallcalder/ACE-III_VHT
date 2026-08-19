@@ -2,7 +2,7 @@ import numpy as np
 import sounddevice as sd
 from faster_whisper import WhisperModel
 
-silence_threshold = 0.05
+silence_threshold = 0.03
 silence_duration = 2
 max_response = 60
 fluency_task_silence = 15
@@ -36,7 +36,7 @@ class AudioCapture:
 
                 energy = np.sqrt(np.mean(chunk**2))
 
-                if energy > silence_duration:
+                if energy > silence_threshold:
                     has_spoken = True
                     silent_chunks_count = 0
                 else:
@@ -53,5 +53,6 @@ class AudioCapture:
 
         audio_data = np.concatenate(recording_buffer, axis=0).flatten()
 
+        del recording_buffer
         segments, _ = self.model.transcribe(audio_data, beam_size=5,language="en", word_timestamps=False, vad_filter=True, vad_parameters={"min_silence_duration_ms": 500})
         return " ".join([segment.text for segment in segments]).strip()

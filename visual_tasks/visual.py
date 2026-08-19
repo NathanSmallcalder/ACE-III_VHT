@@ -146,6 +146,9 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
 
         tts.speak("Okay, now show me.")
         capture_drawing(output_path)
+        # Clear "Finished!" and the hold-to-camera prompt so they don't linger into the next question
+        gui.get_stage_frame()
+        gui.pump()
         return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=output_path)]}
 
     if _is_video_task(question):

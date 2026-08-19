@@ -10,17 +10,20 @@ load_dotenv()
 
 # Load the English NLP model
 nlp = spacy.load("en_core_web_sm")
-tool = language_tool_python.LanguageTool('en-US')
+# Built on first use and closed again in score_sentence_writing -- LanguageTool runs a
+# local Java server
+tool = None
 
 
 def sentence_has_grammer_issues(sentence_text):
+        global tool
+        if tool is None:
+            tool = language_tool_python.LanguageTool('en-US')
         matches = tool.check(sentence_text)
         critical_errors = [
             m for m in matches
         if m.category in ('GRAMMAR', 'TYPOS', 'CASING')
         ]
-    
-        
         # Returns True if grammar errors exist, False if none are found
         return len(critical_errors) > 0
 
@@ -50,7 +53,13 @@ def classify_sentences(text):
     return classified
 
 def score_sentence_writing(text):
+    global tool
     sentences = classify_sentences(text)
+    # Shut the Java server down again now every sentence has been checked
+    if tool is not None:
+        tool.close()
+        tool = None
+
     valid_sentences = [s for s in sentences if s["is_valid_sentence"]]
     clean_sentences = [s for s in valid_sentences if not s["has_errors"]]
 

@@ -50,7 +50,7 @@ def transition() -> str:
             "naming any clinical domain or task (never say memory, attention, "
             "language, etc.), and without asking a question. "
             "Your reply is always a statement, never ends with '?'. Do not use quotes. "
-            "Vary your wording each time -- do not default to the same stock phrase, "
+            "Vary your wording each time only return one phrase for a given sentance "
             "\n\n"
             "Examples:\n"
             "-> Okay, now we'll try something a little different.\n"
@@ -200,13 +200,30 @@ def extract_serial_sevens(last_response: str) -> str:
     out = llm_strict.invoke([
         SystemMessage(content=( 
             """
-        Extract only the numbers given as serial 7 subtraction answers, maintaining the sequence as spoken.
-        Output digits only, separated by single spaces (no punctuation, commentary, or sequence completion).
-        Copy exact answers word for word, inless they have been transcribed as words instead of numbers,
-        conver them into number eqivelent, e.g ninety-one --> 91, preserving any arithmetic errors.
-        Omit the starting 100 and the subtracted 7s. Combine stutters, restarts, or partial numbers 
-        (e.g., "eighty... eighty-six" or "eighty... six is 86" or sev-seventy-nine is 79, ninenty um ok three = 93) into a single number.
-        Output a value for each number spoken.
+        You are transcribing the numbers a patient said during the serial sevens test
+        (starting at 100 and subtracting 7 five times).
+        Output the numbers the patient offered as ANSWERS, in the order spoken, as digits
+        separated by single spaces. Output nothing else -- no commentary, no punctuation.
+        Rules:
+        - The patient gives up to 5 answers. Output one number for every answer they gave.
+          Never drop an answer. Never add one. Never continue the sequence yourself.
+        - Don't correct arithmetic. Copy wrong answers exactly as spoken.
+        - Convert spoken words to digits: "ninety-three" -> 93, "sixty eight" -> 68.
+        - A false start followed by the completed number is a single answer. Output only the
+          completed number:
+            "ninety um ninety ninety-three"          -> 93
+            "eighty uhh eighty-six"            -> 86
+            "seventy... seventy-two"          -> 72
+            "sixty... sixty... sixty-four"    -> 64
+            "s-seventy... seventy-nine"       -> 79
+            "eighty... eigh... eighty-six"    -> 86
+            "eighty... eighty-one"            -> 81
+        - Ignore the starting 100, and ignore any spoken "seven" or "7" that is the amount
+          being subtracted ("take away seven", "minus 7", "take away another seven").
+        - Ignore filler: um, er, erm, well, uh, hold on, then, and, is it, let me think.
+        Example
+        Patient said: Well... uh... hundred take away seven is... um... ninety... ninety-three. Then... hold on... eighty... eighty-six. Erm... minus seven... is... seventy... seventy-nine. Uh... seventy... seventy-two. And... um... sixty... sixty-three.
+        93 86 79 72 63
         """
         )),
         HumanMessage(content=f"Patient said: {last_response}")

@@ -138,8 +138,11 @@ def score_fuzzy(response, answers):
                 span = response_words[i:i + n]
                 window = normalise_number(" ".join(span))
                 window_joined = normalise_number("".join(span))
+                # do not exept close calls that match 88 fuzzy window 
+                # e.g unintelligi (88% match but is not a point)
+                cut_off = expected.startswith(window) and window != expected
                 # Check match criteria: fuzzy similarity exact match OR phonetic sound
-                if (rapidfuzz.fuzz.ratio(window, expected) >= fuzzy_threshold
+                if ((rapidfuzz.fuzz.ratio(window, expected) >= fuzzy_threshold and not cut_off)
                         or window_joined == expected
                         or phonetic_equal(window, expected)):
                     return 1
@@ -214,7 +217,6 @@ def score_fuzzy_list(response, answers):
     matched = set() # Tracks distinct target answers already found to avoid duplicate scoring
     used_words = set() # Tracks word indices in the response already consumed by a match
     response_words = clean_response(response).split()
-
     # Pre-process and normalize expected target answers
     expected = []
     for a in answers:
@@ -234,8 +236,10 @@ def score_fuzzy_list(response, answers):
                     continue
                 # combine words into normalized phrase
                 window = normalise_number(" ".join(response_words[i:i + n]))
+
+
                 # Check match criteria: high fuzzy string similarity OR matching phonetic sound
-                if (rapidfuzz.fuzz.ratio(window, y) >= 88 or phonetic_equal(window, y)
+                if (rapidfuzz.fuzz.ratio(window, y) >= 88  or phonetic_equal(window, y)
                         or any(rapidfuzz.fuzz.ratio(window, v) >= 88 for v in aliases)):
                     matched.add(y)
                     used_words.update(range(i, i + n))

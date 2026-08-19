@@ -14,7 +14,7 @@ Respond with a single JSON object and nothing else — no explanation.
 {
   "circle_present": "<yes/no>",
 
-  "all_12_present": "<yes/no>",
+  "all_12_present": "<yes/no — only written digits count. Tick marks, dashes or dots around the rim are not numbers: if the face has marks but no digits, answer no and list all 12 as missing>",
   "missing_numbers": "<comma-separated list of integers, or none>",
   "duplicated_numbers": "<comma-separated list of integers, or none>",
   "numbers_outside_circle": "<yes/no — any numbers where the entire digit is drawn on the exterior side of the circle line>",

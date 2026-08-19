@@ -71,7 +71,7 @@ class SessionWindow:
 
         self._start_button = tk.Button(
             button_row, text="Start", font=("Segoe UI", 16), width=12,
-            command=self._on_start_clicked,
+            command=self.on_start_clicked,
         )
         self._start_button.pack(side=tk.LEFT, padx=10)
 
@@ -125,27 +125,27 @@ class SessionWindow:
         self._stage_frame.pack(fill=tk.BOTH, expand=True)
         self._stage_image_ref = None
 
-        self._question_label = tk.Label(
+        self.question_label = tk.Label(
             self.root, text="", font=("Segoe UI", 20), wraplength=1000,
             bg=bg_col, fg=text_col, justify="center",
         )
         self._image_showing = False
-        self._position_question_label()
+        self.position_question_label()
 
         self.pump()
 
     def position_question_label(self) -> None:
         """Move question text to top if an image is on screen, otherwise center it."""
         if self._image_showing:
-            self._question_label.place(relx=0.5, rely=0.05, anchor="n")
+            self.question_label.place(relx=0.5, rely=0.05, anchor="n")
         else:
-            self._question_label.place(relx=0.5, rely=0.5, anchor="center")
+            self.question_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def add_message(self, role: str, text: str) -> None:
         """Display prompt text meant for the assessor/patient."""
         if role != "assessor" or not text:
             return
-        self._question_label.configure(text=text)
+        self.question_label.configure(text=text)
         self.position_question_label()
         self.pump()
 
@@ -166,9 +166,11 @@ class SessionWindow:
         return (w if w > 50 else 700, h if h > 50 else 650)
 
     def fit_image(self, path: str) -> Image.Image:
-        """Scale an image down so it takes up max 75% of the stage area."""
+        """Scale an image down so it takes up max 75% of the stage area left free by
+        the question text, which is banded across the top whenever an image is showing."""
         stage_w, stage_h = self.stage_size()
-        max_w, max_h = stage_w * 0.75, stage_h * 0.75 
+        reserved = self.question_label.winfo_reqheight() + 30 if self._image_showing else 0
+        max_w, max_h = stage_w * 0.75, max(stage_h - reserved, 120) * 0.75
         pil_img = Image.open(path)
         scale = min(max_w / pil_img.width, max_h / pil_img.height, 1.0)
         if scale < 1.0:
@@ -181,15 +183,17 @@ class SessionWindow:
         """Center and display a stimulus image on stage."""
         frame = self.get_stage_frame()
         self._image_showing = True
-        self._position_question_label()
+        self.position_question_label()
         
-        pil_img = self._fit_image(path)
+        pil_img = self.fit_image(path)
         tk_img = ImageTk.PhotoImage(pil_img)
         
         label = tk.Label(frame, image=tk_img, bg=bg_col)
-        label.place(relx=0.5, rely=0.6, anchor="center")
-        
-        # Keep image reference around so garbage collection doesn't drop it
+        # Center in the area below the question text rather than the full stage
+        stage_h = self.stage_size()[1]
+        reserved = self.question_label.winfo_reqheight() + 30
+        label.place(relx=0.5, rely=(reserved + (stage_h - reserved) / 2) / stage_h, anchor="center")
+
         self._stage_image_ref = tk_img
         self.pump()
 
@@ -224,7 +228,7 @@ class SessionWindow:
         panel = tk.Frame(frame, bg=bg_col)
         if reference_image_path:
             # Show visual reference on left if task requires copying (e.g. cube)
-            pil_ref = self._fit_image(reference_image_path)
+            pil_ref = self.fit_image(reference_image_path)
             ref_tk_img = ImageTk.PhotoImage(pil_ref)
             ref_label = tk.Label(frame, image=ref_tk_img, bg=bg_col)
             ref_label.image = ref_tk_img
@@ -276,7 +280,7 @@ class SessionWindow:
         if panel is None:
             return
         try:
-            panel["timer"].config(text="Finished!" if finished else "Time's up!", fg="red")
+            panel["timer"].config(text="")
             panel["status"].config(text="Please hold your drawing steady facing the camera...")
         except tk.TclError:
             return
@@ -317,9 +321,9 @@ class SessionWindow:
         """Build a clickable Canvas mapped across an image in a virtual grid."""
         frame = self.get_stage_frame()
         self._image_showing = True
-        self._position_question_label()
+        self.position_question_label()
         
-        pil_img = self._fit_image(image_path)
+        pil_img = self.fit_image(image_path)
         tk_img = ImageTk.PhotoImage(pil_img)
         
         canvas = tk.Canvas(frame, width=pil_img.width, height=pil_img.height,

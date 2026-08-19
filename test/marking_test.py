@@ -71,6 +71,7 @@ fuzzy_cases = {
     "repeat_words_stutter_eccentricity":("e-eccen... tri... ci... ty.", ["eccentricity"], 1),
     "repeat_words_small_stutter":("ca-ter... pil-lar.", ["caterpillar"], 1),
     "repeat_words_missing_syllable":("un... in... tell... i... ble.", ["unintelligible"], 0),
+    "repeat_words_unfinished": ("unintelligi...", ["unintelligible"], 0),
     "repeat_words_stutter":("e-e-eccen... tri... city.", ["eccentricity"], 1),
     "compound_ordinal_not_mistaken_for_its_ones_digit": (
         "the twenty-ninth", ["9", "10", "11", "12", "13"], 0
@@ -236,7 +237,9 @@ serial_sevens_cases = {
     ids=serial_sevens_cases.keys()
 )
 def test_score_serial_sevens(response, expected):
-    result = score_serial_sevens(response)
+    from LLM.dialogue import extract_serial_sevens
+    res = extract_serial_sevens(response)
+    result = score_serial_sevens(res)
     assert result == expected
 
 
@@ -292,6 +295,7 @@ animal_fluency_cases = {
     "empty_response": ("", 0),
     "mythical": ("dragon, tyrannosaurus, cat, dog ,mouse",1),
     "full_mythical_or_extinct": ("dragon, cyclops, centaur ,stegosaurus, lizard",1),
+    "transcript":("Well... uh... let's see... a... a... dog... um... cat. Hold on... horse... horse, yeah. Erm... what else... a... a... dragon... uh... trout... well... li... lion. Erm... hold on... a... a f... fawn... uh... rob... robin. And... um... el... elephant.",3)
 }
 
 @pytest.mark.parametrize(
@@ -305,7 +309,7 @@ def test_score_animal_fluency(response, expected):
 
 
 
-animal_fluency_cases = {
+writing_cases = {
     # --- Score 0: Fails both criteria ---
     "zero_short_error": ("dog ", 0),
     "zero_list_error": ("dog cat hrose cow goat", 0),  # Misspelled "hrose", not 2 sentences
@@ -326,8 +330,8 @@ animal_fluency_cases = {
 from visual_tasks import writing
 @pytest.mark.parametrize(
     "response, expected",
-    animal_fluency_cases.values(),
-    ids=animal_fluency_cases.keys()
+    writing_cases.values(),
+    ids=writing_cases.keys()
 )
 def test_score_writing(response, expected):
     result = writing.score_sentence_writing(response)

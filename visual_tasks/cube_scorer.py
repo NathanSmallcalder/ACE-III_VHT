@@ -18,7 +18,7 @@ execution still counts. Only mark an edge as absent if there is no line at all a
 Describe only what is visible in the drawing. Respond with a single JSON object and nothing else.
 
 {
-  "all_edges_present": "<yes/no — is every one of the cube's 12 edges drawn, or is at least one missing entirely?>",
+  "all_edges_present": "<yes/no — is every one of the cube's 12 edges drawn, or is at least one missing entirely, or are there more than 12?>",
   "general_cube_shape": "<yes/no — Is a general cube shape maintained, regardless of exact style or proportions>",
 
   "notes": "<one short sentence flagging anything unusual not captured above, or none>"

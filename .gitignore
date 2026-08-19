@@ -7,10 +7,8 @@ visual_tasks/infinity_diagram.png
 visual_tasks/wire_cube.png
 visual_tasks/writing.png
 eval_results.csv
-
-# Contains patient PII (name, DOB, assessor) 
-results/
+.pytest_cache
 # Captured photos/videos/frames from webcam test runs
 data/
-.csv
+
 

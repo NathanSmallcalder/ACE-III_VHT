@@ -10,7 +10,7 @@
     "Memory": 25,
     "Fluency": 14,
     "Language": 26,
-    "Visuospatial": 13
+    "Visuospatial": 14
   },
   "domain_caps": {
     "Attention": 18,
@@ -19,7 +19,7 @@
     "Language": 26,
     "Visuospatial": 16
   },
-  "total_score": 96,
+  "total_score": 97,
   "questions": [
     {
       "domain": "Attention",
@@ -295,7 +295,7 @@
       "response": [
         "test/InfinitySymbol/1\\Screenshot 2026-07-19 220836.png"
       ],
-      "score": 0,
+      "score": 1,
       "score_cap": 1
     },
     {

@@ -6,11 +6,11 @@
   "assessor": "na",
   "date": "2026-08-16T10:12:32.797429",
   "domain_scores": {
-    "Attention": 13,
+    "Attention": 14,
     "Memory": 20,
     "Fluency": 10,
     "Language": 19,
-    "Visuospatial": 11
+    "Visuospatial": 12
   },
   "domain_caps": {
     "Attention": 18,
@@ -19,7 +19,7 @@
     "Language": 26,
     "Visuospatial": 16
   },
-  "total_score": 73,
+  "total_score": 75,
   "questions": [
     {
       "domain": "Attention",
@@ -73,7 +73,7 @@
       "response": [
         "Well... uh... hundred take away seven is... um... ninety... ninety-three. Then... hold on... eighty... eighty-six. Erm... minus seven... is... seventy... seventy-nine. Uh... take away another seven... seventy... seventy-two. And... um... hold on... sixty... sixty-three."
       ],
-      "score": 3,
+      "score": 4,
       "score_cap": 5
     },
     {
@@ -301,7 +301,7 @@
       "response": [
         "test/InfinitySymbol/1\\Screenshot 2026-07-19 220836.png"
       ],
-      "score": 0,
+      "score": 1,
       "score_cap": 1
     },
     {
