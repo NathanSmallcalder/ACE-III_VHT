@@ -9,7 +9,7 @@ from sklearn.metrics import ConfusionMatrixDisplay
 
 CSV_PATH = "synthetic_personas/synthetic_ace3.csv"
 
-DOMAIN_COLUMNS = {
+domains = {
     "Attention": "attention_orientation",
     "Memory": "memory",
     "Fluency": "fluency",
@@ -17,7 +17,7 @@ DOMAIN_COLUMNS = {
     "Visuospatial": "visuospatial",
 }
 
-COLUMN_QUESTIONS = {
+questions = {
     "orientation_date": {"Orientation to Time: What is the day, date, month, year, and season?"},
     "orientation_location": {"Orientation to Place: What is the number or floor, street, town, county, and country?"},
     "registration": {"Registration: Repeat the three words lemon, key, and ball."},
@@ -64,7 +64,7 @@ COLUMN_QUESTIONS = {
 classes = ["healthy", "mci", "dementia"]
 
 # VLM-scored drawings mismatch constantly; exclude them so the rest stands out
-DRAWING_COLUMNS = {"clock_copying", "cube_copying", "infinity_copying"}
+drawing_tasks = {"clock_copying", "cube_copying", "infinity_copying"}
 
 def classify_total(total):
     if total >= 88:
@@ -97,7 +97,7 @@ def print_mismatch_detail(questions, result):
 def compare(path, result, row):
     print(f"\n=== {os.path.basename(path)} ({row['participant_id']}_{row['cognitive_status']}) ===")
 
-    for domain, column in DOMAIN_COLUMNS.items():
+    for domain, column in domains.items():
         target = row[column]
         actual = result["domain_scores"].get(domain)
         flag = "" if target == actual else "   MISMATCH"
@@ -105,13 +105,13 @@ def compare(path, result, row):
     flag = "" if row["ace3_total"] == result["total_score"] else "  <-- MISMATCH"
     print(f"  {'TOTAL':12} target={row['ace3_total']:>3} actual={result['total_score']:>3}{flag}")
 
-    for column, questions in COLUMN_QUESTIONS.items():
+    for column, question in questions.items():
         target = row[column]
-        actual = sum(q["score"] for q in result.get("questions", []) if q["question_text"] in questions)
+        actual = sum(q["score"] for q in result.get("questions", []) if q["question_text"] in question)
         flag = "" if target == actual else "  <-- MISMATCH"
         print(f"    [{target}/{actual}] {column}{flag}")
         if target != actual:
-            print_mismatch_detail(questions, result)
+            print_mismatch_detail(question, result)
 
 def save_confusion_matrix(matrix, out_path="classification_confusion_matrix.png"):
     """Render the true-vs-predicted cognitive status matrix to a PNG."""
@@ -139,13 +139,13 @@ def print_domain_accuracy(hits, counts, perfect, near):
     print("\n=== Domain accuracy (exact score match) ===")
     print(f"  {'domain':14}" + "".join(f"{c:>10}" for c in classes) + f"{'overall':>10}")
 
-    for domain in DOMAIN_COLUMNS:
+    for domain in domains:
         row = "".join(pct(hits[c][domain], counts[c]) for c in classes)
         row += pct(sum(hits[c][domain] for c in classes), sum(counts.values()))
         print(f"  {domain:14}" + row)
 
     # Every domain of every participant, pooled
-    per_class = {c: counts[c] * len(DOMAIN_COLUMNS) for c in classes}
+    per_class = {c: counts[c] * len(domains) for c in classes}
     row = "".join(pct(sum(hits[c].values()), per_class[c]) for c in classes)
     row += pct(sum(sum(hits[c].values()) for c in classes), sum(per_class.values()))
     print(f"  {'ALL DOMAINS':14}" + row)
@@ -164,7 +164,7 @@ def print_drawing_agreement(exact, near, counts):
     """Per-task agreement for the VLM-scored drawings, exact and to within 1 point."""
     print("\n=== Drawing task agreement ===")
     print(f"  {'task':16}{'exact':>10}{'+/-1':>10}{'n':>6}")
-    for column in DRAWING_COLUMNS:
+    for column in drawing_tasks:
         n = counts[column]
         print(f"  {column:16}{pct(exact[column], n)}{pct(near[column], n)}{n:>6}")
 
@@ -183,14 +183,14 @@ def print_non_drawing_mismatches(entries):
 def main():
     targets = load_targets()
     matrix = {t: {p: 0 for p in classes} for t in classes}
-    domain_hits = {c: {d: 0 for d in DOMAIN_COLUMNS} for c in classes}
+    domain_hits = {c: {d: 0 for d in domains} for c in classes}
     status_counts = {c: 0 for c in classes}
     perfect_runs = {c: 0 for c in classes}
     visuo_near = {c: 0 for c in classes}
     mismatches = []
-    draw_counts = {c: 0 for c in DRAWING_COLUMNS}
-    draw_exact = {c: 0 for c in DRAWING_COLUMNS}
-    draw_near = {c: 0 for c in DRAWING_COLUMNS}
+    draw_counts = {c: 0 for c in drawing_tasks}
+    draw_exact = {c: 0 for c in drawing_tasks}
+    draw_near = {c: 0 for c in drawing_tasks}
     for path, result, participant_id, cognitive_status in load_synthetic_results():
         key = (participant_id, cognitive_status)
         row = targets.get(key)
@@ -202,24 +202,24 @@ def main():
         matrix[status][classify_total(result["total_score"])] += 1
         status_counts[status] += 1
         matched = 0
-        for domain, column in DOMAIN_COLUMNS.items():
+        for domain, column in domains.items():
             if row[column] == result["domain_scores"].get(domain):
                 domain_hits[status][domain] += 1
                 matched += 1
-        if matched == len(DOMAIN_COLUMNS):
+        if matched == len(domains):
             perfect_runs[status] += 1
         if abs(row["visuospatial"] - result["domain_scores"].get("Visuospatial", 0)) <= 1:
             visuo_near[status] += 1
 
         flagged = []
-        for column, questions in COLUMN_QUESTIONS.items():
-            if column in DRAWING_COLUMNS:
-                actual = sum(q["score"] for q in result.get("questions", []) if q["question_text"] in questions)
+        for column, question in questions.items():
+            if column in drawing_tasks:
+                actual = sum(q["score"] for q in result.get("questions", []) if q["question_text"] in question)
                 draw_counts[column] += 1
                 draw_exact[column] += row[column] == actual
                 draw_near[column] += abs(row[column] - actual) <= 1
                 continue
-            actual = sum(q["score"] for q in result.get("questions", []) if q["question_text"] in questions)
+            actual = sum(q["score"] for q in result.get("questions", []) if q["question_text"] in question)
             if row[column] != actual:
                 flagged.append((column, row[column], actual))
         if flagged:

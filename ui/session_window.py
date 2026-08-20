@@ -228,6 +228,9 @@ class SessionWindow:
         panel = tk.Frame(frame, bg=bg_col)
         if reference_image_path:
             # Show visual reference on left if task requires copying (e.g. cube)
+            # Band the question text across the top so it doesn't sit over the image
+            self._image_showing = True
+            self.position_question_label()
             pil_ref = self.fit_image(reference_image_path)
             ref_tk_img = ImageTk.PhotoImage(pil_ref)
             ref_label = tk.Label(frame, image=ref_tk_img, bg=bg_col)

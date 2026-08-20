@@ -61,7 +61,7 @@ class NullGUI:
         pass
 
 
-def _visual_and_click_question_texts():
+def visual_and_click_question_texts():
     """question_text of every real question routed through run_visual_task/run_click_task
     -- those never call capture_response, so their transcript entries must be excluded
     from the audio queue or they'd just sit there unconsumed forever."""
@@ -72,13 +72,13 @@ def _visual_and_click_question_texts():
         if question.get("match_type") in ("clock", "pen_paper", "cube", "infinity", "sentances") or is_click_point_question(question)
     }
 
-def _flatten(transcript, domains, skip_questions):
+def flatten(transcript, domains, skip_questions):
     """All 'Answered' values across the given domains, in transcript order, excluding
     visual/click items (see _visual_and_click_question_texts)."""
     return [entry["Answered"] for domain in domains for entry in transcript.get(domain, [])
             if entry["Question"] not in skip_questions]
 
-def _by_question_text(transcript):
+def by_question_text(transcript):
     """question_text -> Answered, across every domain in the transcript."""
     return {
         entry["Question"]: entry["Answered"]
@@ -86,11 +86,11 @@ def _by_question_text(transcript):
         for entry in items
     }
 
-def _make_visual_stubs(transcript):
+def make_visual_stubs(transcript):
     """Replacements for graph.run_visual_task / graph.run_click_task -- feed the
     transcript's answer for that question instead of driving a real camera, video
     recorder, or Tkinter click canvas."""
-    by_question = _by_question_text(transcript)
+    by_question = by_question_text(transcript)
 
     def stub_run_visual_task(state, question, tts, audio, session_config, gui):
         text = question["question_text"]
@@ -116,15 +116,15 @@ def run_replay(transcript_path):
     session_config = get_session_config()
     session_config['patient']['name'] = f"{transcript.get('participant_id')}_{transcript.get('cognitive_status')}"
 
-    skip_questions = _visual_and_click_question_texts()
-    audio = ReplayAudio(_flatten(transcript, ["Attention", "Memory", "Language", "Visuospatial"], skip_questions))
-    audio_fluency = ReplayAudio(_flatten(transcript, ["Fluency"], skip_questions))
+    skip_questions = visual_and_click_question_texts()
+    audio = ReplayAudio(flatten(transcript, ["Attention", "Memory", "Language", "Visuospatial"], skip_questions))
+    audio_fluency = ReplayAudio(flatten(transcript, ["Fluency"], skip_questions))
     tts = NullTTS()
     gui = NullGUI()
 
     graph.configure(session_config, tts, audio, audio_fluency, gui)
 
-    stub_visual, stub_click = _make_visual_stubs(transcript)
+    stub_visual, stub_click = make_visual_stubs(transcript)
     graph.run_visual_task = stub_visual
     graph.run_click_task = stub_click
 

@@ -32,7 +32,7 @@ def get_season_transition(now):
         return true_season, backward
     return true_season, None
 
-def _name_and_surname(full_name):
+def name_and_surname(full_name):
     surname = full_name.split()[-1]
     return [full_name] if surname == full_name else [full_name, surname]
 
@@ -68,9 +68,9 @@ def resolve_dynamic_answers(answers, session_config):
         elif answer == "DYNAMIC:uk_prime_minister":
             # Full name and surname alone are both accepted per ACE-III rules
             # (e.g. "Starmer" credited same as "Keir Starmer").
-            resolved.extend(_name_and_surname(session_config["current_uk_pm"]))
+            resolved.extend(name_and_surname(session_config["current_uk_pm"]))
         elif answer == "DYNAMIC:us_president":
-            resolved.extend(_name_and_surname(session_config["current_us_president"]))
+            resolved.extend(name_and_surname(session_config["current_us_president"]))
         else:
             resolved.append(answer)
     return resolved

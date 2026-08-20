@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from data_loader import get_session_config, resolve_dynamic_answers
-from marking.marking import CATEGORY_FLUENCY_BANDS, LETTER_FLUENCY_BANDS
+from marking.marking import animal_fluency_band, letter_fluency_bands
 import os
 load_dotenv()
 
@@ -78,7 +78,7 @@ def set_persona(persona):
                   Remains on track sometimes rambles, loses train of thought, or slight stutters."""
         return status
     if persona == "dementia":
-        status = """Delivery is slow, effortful, and erratic, use frequent fillers Hesitation should occur throughout most awnsers, 
+        status = """Delivery is slow effortful, and erratic, use frequent fillers Hesitation should occur throughout most awnsers, 
                     including correct ones. For Fail via hesitation, trailing off, landing on a plausible wrong value, or self-correcting 
                     (e.g., "bar... no wait, ball" replicating words a ASR system
                     would detect. Never deliver a clean, confident wrong answer or say "I don't know" 
@@ -209,7 +209,7 @@ def _band_target_count(marks, bands):
 
 
 def verbal_fluency(verbal_fluency, cognitive_status):
-    target_count = _band_target_count(verbal_fluency, LETTER_FLUENCY_BANDS)
+    target_count = _band_target_count(verbal_fluency, letter_fluency_bands)
     prompt = f"""**verbal_fluency**: Say exactly {target_count} distinct, real words that start
                 with the letter P, comma separated, no repeats -- this exact count is what the real
                 scorer needs to land on {verbal_fluency} marks; do not use {verbal_fluency} itself as
@@ -226,7 +226,7 @@ def verbal_fluency(verbal_fluency, cognitive_status):
 
 
 def semantic_fluency(semantic_fluency, cognitive_status):
-    target_count = _band_target_count(semantic_fluency, CATEGORY_FLUENCY_BANDS)
+    target_count = _band_target_count(semantic_fluency, animal_fluency_band)
     prompt = f"""**semantic_fluency**: Say exactly {target_count} distinct, real animals or mythical creatures 
                  this exact count is what the real scorer needs to land on
                 {semantic_fluency} marks; do not use {semantic_fluency} itself as the word count. 
@@ -549,7 +549,6 @@ def generate_transcript(row, real_values, shell):
     transcript["Visuospatial"].extend(recognition_entries)
 
     return transcript
-
 
 def main():
     df = pd.read_csv(csv_path)

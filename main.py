@@ -11,7 +11,7 @@ DOMAIN_ORDER = list(ace_json.keys())
 
 initial_state = {
     "messages": [],
-    "current_domain": "Visuospatial", #DOMAIN_ORDER[0],
+    "current_domain":DOMAIN_ORDER[0],
     "question_index":0,
     "sub_question_index": 0,
     "question_score": 0,

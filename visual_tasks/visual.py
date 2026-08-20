@@ -20,13 +20,13 @@ grid_items = [
     "crown", "crocodile", "accordion",
 ]
 
-def _is_draw_task(question: dict) -> bool:
+def is_draw_task(question: dict) -> bool:
     """ Helper function to check if its a drawing task """
     text = question.get("match_type", "")
     target_types = ("clock", "cube", "infinity", "sentances")
     return text in target_types
 
-def _is_video_task(question: dict) -> bool:
+def is_video_task(question: dict) -> bool:
     """Checks to see if its a video task (pen paper task)"""
     return question.get("question_text", "").startswith("Comprehension: Follow three-stage commands")
 
@@ -37,14 +37,13 @@ def is_click_point_question(question: dict) -> bool:
 def task_type(question: dict) -> str:
     """Categorizes a question into a task-type tag ('draw', 'video', 'click', or 'spoken').
     Used to detect transition between tasks"""
-    if _is_draw_task(question):
+    if is_draw_task(question):
         return "draw"
-    if _is_video_task(question):
+    if is_video_task(question):
         return "video"
     if is_click_point_question(question):
         return "click"
     return "spoken"
-
 
 def run_click_task(state, question: dict, tts, session_config: dict, next_question: dict | None, gui) -> dict:
     """
@@ -97,7 +96,7 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
     text = spoken[0] if spoken else question["question_text"]
     # Display reference stimulus image in GUI unless it's a drawing task 
     # (drawing tasks render the stimulus inside their own specialized window layout)
-    if question.get("image") and not _is_draw_task(question):
+    if question.get("image") and not is_draw_task(question):
         gui.show_stimulus_image(question["image"])
 
     # Prepare speech text and dynamic conversational transitions
@@ -113,7 +112,7 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
     print("Assessor:", spoken_text)
     gui.add_message("assessor", spoken_text)
 
-    if _is_draw_task(question): # Responsible for generating conversation during the drawing tasks
+    if is_draw_task(question): # Responsible for generating conversation during the drawing tasks
         if wrapper:
             tts.speak(wrapper)
         for prompt in spoken:
@@ -151,7 +150,7 @@ def run_visual_task(state, question: dict, tts, audio, session_config: dict, gui
         gui.pump()
         return {"messages": [AIMessage(content=spoken_text), HumanMessage(content=output_path)]}
 
-    if _is_video_task(question):
+    if is_video_task(question):
         if wrapper:
             tts.speak(wrapper)
 

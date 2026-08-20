@@ -349,6 +349,9 @@ def conversation_node(state: ACEState) -> dict:
     # Display stimulus image if the question calls for one (and isn't a repeat turn)
     if question.get("image") and not state.get("needs_repeat"):
         gui_.show_stimulus_image(question["image"])
+    # Otherwise wipe the stage so the previous question's image doesn't linger
+    elif not question.get("image"):
+        gui_.get_stage_frame()
     # Grab the text prompt for the current sub-question
     prompts = get_sub_prompts(question)
     if prompts and sub_index < len(prompts):

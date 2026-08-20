@@ -52,7 +52,7 @@ def score_clock(data: dict) -> dict:
         #  evenly distributed. A slight rotation to the overall clock face is acceptable."
         numbers_score = 2
     else:
-        # "1 point if all numbers are included but the numbers are either outside
+        # 1 point if all numbers are included but the numbers are either outside
         #  of the circle or the numbers are unevenly spaced"
         numbers_score = 1
 
@@ -73,7 +73,7 @@ def score_clock(data: dict) -> dict:
     h2 = to_int(get("longer_hand_points_to"))   # longer (minute) hand's target
 
     if hand_count != "2":
-        # "0 point if one hand is drawn"
+        # 0 point if one hand is drawn"
         hands_score = 0
     else:
         hand_positions = {x for x in [h1, h2] if x is not None}
@@ -82,17 +82,17 @@ def score_clock(data: dict) -> dict:
         length_correct  = lengths_differ and h1 == hour_target and h2 == min_target
 
         if both_numbers_correct and length_correct:
-            # "2 points if both hands are drawn, lengths are correct and placed on correct numbers"
+            # 2 points if both hands are drawn, lengths are correct and placed on correct numbers"
             hands_score = 2
         elif both_numbers_correct:
-            # "1 point if both hands are drawn and placed on the correct numbers but lengths are incorrect"
+            # 1 point if both hands are drawn and placed on the correct numbers but lengths are incorrect"
             hands_score = 1
         elif lengths_differ and (h1 == hour_target or h2 == min_target):
-            # "1 point if both hands are drawn but only one hand is placed on the correct
+            # 1 point if both hands are drawn but only one hand is placed on the correct
             #  number and drawn with correct length"
             hands_score = 1
         else:
-            # "0 points if two hands are drawn but both lengths/numbers are incorrect"
+            # 0 points if two hands are drawn but both lengths/numbers are incorrect"
             hands_score = 0
 
     return {

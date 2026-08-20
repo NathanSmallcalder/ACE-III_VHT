@@ -74,7 +74,7 @@ def make_profile(pid: str) -> dict:
 
         # Total ACE-III score (Max 100)
         profile["ace3_total"] = sum(profile[dom] for dom in domains)
-
+        
         if min_pct * 100 <= profile["ace3_total"] <= max_pct * 100:
             break
 

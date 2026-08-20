@@ -17,7 +17,7 @@ Describe only what is visible in the drawing.
 Respond with a single JSON object and nothing else — no explanation.
 {
   "figure_eight_count": "<integer — how many distinct figure-eight/infinity shapes are drawn>",
-  "loops_cross_at_intersection": "<yes/no — does each figure-eight's line pass through itself at a central intersection, or is it closed loops that merely touch? Answer yes only if the line genuinely crosses. Round, full loops still count as yes provided the line crosses.>",
+  "loops_cross_at_intersection": "<yes/no — does each figure-eight's line pass through itself at a central intersection, or is it closed loops that merely touch? Answer yes only if the line genuinely crosses. A loop may be round rather than sharply pointed -- judge whether the line genuinely crosses over itself at the waist, not how sharp the crossing is. Separate closed loops that merely touch, or sit side by side in a row, are not figure-eights.>",
   "figure_eights_overlap": "<yes/no — do the two figure-eight shapes visibly overlap each other in the middle>",
 
   "notes": "<one short sentence flagging anything unusual not captured above, or none>"

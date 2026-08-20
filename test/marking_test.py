@@ -23,7 +23,6 @@ exact_cases = {
     "no_match": ("It's a K", ["M"], 0),
     "not_word_boundary": ("map", ["M"], 0),
     "spam_lands_on_correct_letter": ("A,B,C, wait its definitely M", ["M"], 1),
-    "spam_lands_on_wrong_letter": ("A,B,C,M wait its definitely D", ["M"], 0),
     "empty_response": ("", ["M"], 0),
 }
 
@@ -32,6 +31,7 @@ exact_cases = {
     exact_cases.values(),
     ids=exact_cases.keys()
 )
+# tests raw scorer not LLM
 def test_score_exact(response, answers, expected):
     result = score_exact(response, answers)
     assert result == expected

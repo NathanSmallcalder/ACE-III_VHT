@@ -11,7 +11,7 @@ from visual_tasks.pen_paper_scorer import score_pen_paper_video
 from visual_tasks.writing import score_writing_image
 
 
-LETTER_FLUENCY_BANDS = [
+letter_fluency_bands = [
     (0, 1, 0),
     (2, 3, 1),
     (4, 5, 2),
@@ -22,7 +22,7 @@ LETTER_FLUENCY_BANDS = [
     (18, float("inf"), 7)
 ]
 
-CATEGORY_FLUENCY_BANDS = [
+animal_fluency_band = [
     (0, 4, 0),
     (5, 6, 1),
     (7, 8, 2),
@@ -37,7 +37,7 @@ fuzzy_threshold = 82
 fuzzy_window = 6 # Longest possible awnser someone could give is 6 words long "a stich in time saves nine" or a spelled out year "two thousand and twenty six"
 
 def phonetic_equal(a, b):
-    # Very short words produce noisy phonetic codes
+    # Remove very short words produce noisy phonetic codes
     if len(a) < 3 or len(b) < 3:
         return False
     # Filters out phonetically similar but distinct words
@@ -56,11 +56,26 @@ def phonetic_equal(a, b):
     # Match if there is ANY overlap between the phonetic keys of word A and word B
     return bool(codes_a & codes_b)
 
+# Spoken names of the letters, so speech-to-text spellings of them ("tea" for
+# T, "em" for M) still credit the fragmented letter questions.
+letter_names = {"m": ["em", "mmmm", "muh"],
+                "a": ["ay", "ah"],
+                "t": ["tee", "tea", "tuh"],
+                "k": ["kay", "kuh"]}
+
 def score_exact(response, answers):
     """Single-character exact match (fragmented letters).
-      Checks if the expected letter appears as a word in the response."""
+      Checks if the expected letter appears as a word in the response, or a word
+      that sounds like the letter's spoken name."""
     words = clean_response(response).split()
-    return 1 if any(clean_response(a) in words for a in answers) else 0
+    for a in answers:
+        cleaned = clean_response(a)
+        if cleaned in words:
+            return 1
+        for name in letter_names.get(cleaned, []):
+            if any(doublemetaphone(w)[0] == doublemetaphone(name)[0] for w in words):
+                return 1
+    return 0
 
 def score_integer(response, answers):
     """Parsed integer match via sliding window (dot counting). Credits a
@@ -77,7 +92,7 @@ def score_integer(response, answers):
     # If none of the expected numbers were found anywhere in the response
     if match_end == -1:
         return 0
-    # Check for trailing numbers spoken AFTER the last valid match
+    # Check for trailing numbers spoken after the last valid match
     # (e.g. "it was 5 no wait 6" -> match_end is after '5', but '6' follows)
     for n in range(1, min(3, len(response_words) - match_end) + 1):
         for i in range(match_end, len(response_words) - n + 1):
@@ -211,8 +226,7 @@ answer_variants = {
 
 def score_fuzzy_list(response, answers):
     """Each answer in list scored separately via sliding window. Response words
-    already used by an earlier match can't be reused by a later one. 
-    Called in Repetiton Questions --> Statistician, """
+    already used by an earlier match can't be reused by a later one."""
     score = 0
     matched = set() # Tracks distinct target answers already found to avoid duplicate scoring
     used_words = set() # Tracks word indices in the response already consumed by a match
@@ -237,7 +251,6 @@ def score_fuzzy_list(response, answers):
                 # combine words into normalized phrase
                 window = normalise_number(" ".join(response_words[i:i + n]))
 
-
                 # Check match criteria: high fuzzy string similarity OR matching phonetic sound
                 if (rapidfuzz.fuzz.ratio(window, y) >= 88  or phonetic_equal(window, y)
                         or any(rapidfuzz.fuzz.ratio(window, v) >= 88 for v in aliases)):
@@ -253,13 +266,13 @@ def score_fuzzy_list(response, answers):
 
 def score_all_correct_list(response, answers):
     """1 point only if every item in the list was matched,
-    else 0. Used where the guide gives no partial credit (e.g. Reading:
+    else 0. Used where the guide gives no partial credit (Reading):
     'Score 1 point if all five words are read correctly')."""
     return 1 if score_fuzzy_list(response, answers) == len(answers) else 0
 
 def score_sentence_repetition(response, answers):
     """Every word of the target sentence must be found (fuzzy/phonetic) somewhere
-    in the response -- so hesitation filler ("um", "let me see") around the
+    in the response so hesitation filler ("um", "let me see") around the
     sentence doesn't tank the score, but a dropped or wrong word does."""
     words = clean_response(answers[0]).split()
     return score_all_correct_list(response, words)
@@ -329,7 +342,6 @@ def score_animal_fluency(response):
         if matched_term:
             canonical = gender_map.get(matched_term, matched_term)
             unique_animals.add(canonical)
-
     # Map unique animal names to their primary WordNet noun synset
     synsets = {}
     for animal_name in unique_animals:
@@ -354,9 +366,7 @@ def score_animal_fluency(response):
                         break
 
     final_unique = unique_animals - to_drop
-    return scaled_count(len(final_unique), CATEGORY_FLUENCY_BANDS)
-
-
+    return scaled_count(len(final_unique), animal_fluency_band)
 
 def scaled_count(count, bands):
     """Returns score from the first band where count falls between min and max. 
@@ -403,7 +413,7 @@ def score_letter_fluency(response):
     roots = {p_word_root(w) for w in words}
 
     roots.discard(None) # Removes None from the list
-    return scaled_count(len(roots), LETTER_FLUENCY_BANDS) # Returns score 0-7
+    return scaled_count(len(roots), letter_fluency_bands) # Returns score 0-7
 
 def parse_spoken_prompts(question: dict) -> list[str]:
     """Extract every spoken prompt from instructions, one entry per Wait-for-response pause."""
@@ -424,7 +434,7 @@ def parse_spoken_prompts(question: dict) -> list[str]:
 
 def get_sub_prompts(question: dict) -> list[str]:
     """Returns prompts only when each answer has its own spoken prompt (multi-prompt tracking)."""
-    prompts = parse_spoken_prompts(question)
+    prompts = parse_spoken_prompts(question) # Gets "instruction section from the json"
     n_answers = len(question.get("answers", []))
     if len(prompts) == n_answers and n_answers > 1:
         return prompts
@@ -465,8 +475,8 @@ def score_mixed_list(response, answers):
     """Each answer scored separately; numeric answers use integer match, strings use fuzzy."""
     return sum(score_mixed_list_detailed(response, answers))
 
-def score_question(response, question, sub_index=None):
-    """Main dispatch. Returns the integer score for `response`."""
+def score_question(response, question, sub_index=None): 
+    """Main dispatch/handler. Returns the integer score for `response`."""
     match_type = question.get("match_type", "fuzzy_list")
     answers = question.get("answers", [])
 

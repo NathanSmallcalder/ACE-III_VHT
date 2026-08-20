@@ -50,7 +50,8 @@ def transition() -> str:
             "naming any clinical domain or task (never say memory, attention, "
             "language, etc.), and without asking a question. "
             "Your reply is always a statement, never ends with '?'. Do not use quotes. "
-            "Vary your wording each time only return one phrase for a given sentance "
+            "Vary your wording each time only one phrase must be given"
+            "Ensure you only return one phrase."
             "\n\n"
             "Examples:\n"
             "-> Okay, now we'll try something a little different.\n"
@@ -67,15 +68,13 @@ def transition_que(state, patient_name: str, domain: str, task_type: str, sub_in
     """Transitional que when changing domains or achknowledgement of last question"""
     if not state["messages"]:
         return introduce(patient_name)
-
     if sub_index != 0:
         return ""
-
-    previous_signature = state.get("previous_task_signature")
+    previous_task = state.get("previous_task_signature")
     """Transition Task to Paper or click on screen"""
-    if previous_signature is not None and previous_signature != (domain, task_type):
+    if previous_task is not None and previous_task != (domain, task_type):
         return transition()
-    if domain == "Visuospatial" and task_type == "click" and previous_signature != (domain, task_type):
+    if domain == "Visuospatial" and task_type == "click" and previous_task != (domain, task_type):
         return transition()
 
     last_patient = next(
@@ -91,8 +90,8 @@ def rephrase_question(question_text: str) -> str:
     result = llm_warm.invoke([
         SystemMessage(content=(
             "You are a warm clinical assessor. The patient did not understand the question. "
-            "Reply with ONLY a rephrased version of the question "
-            "to help them understand. Do not add new information, do not judge their "
+            "Reply with ONLY a rephrased version of the question, the question must still be asking the same thing just reworded slightly"
+            "Do not add new information and retain information from the previous question, do not judge their "
             "response, do not use quotes. Do not ask a question based off the users response."
         )),
         HumanMessage(content=f"Question: {question_text}")
@@ -193,13 +192,10 @@ def classify_turn(last_response: str, question_text: str = "") -> str:
 
 def extract_serial_sevens(last_response: str) -> str:
     """Pulls just the numbers the patient offered as answers out of a serial-sevens
-    turn, as a space-separated string for score_serial_sevens to do the arithmetic on.
-    Spoken phrasing ("take away another seven"), stutters ("s-seventy... seventy-two")
-    and quoted transcripts all leave stray values behind when parsed by rule alone.
-    The model only transcribes -- it never checks or corrects the subtraction."""
+    turn, as a space-separated string for score_serial_sevens"""
     out = llm_strict.invoke([
         SystemMessage(content=( 
-            """
+        """
         You are transcribing the numbers a patient said during the serial sevens test
         (starting at 100 and subtracting 7 five times).
         Output the numbers the patient offered as ANSWERS, in the order spoken, as digits
@@ -222,7 +218,9 @@ def extract_serial_sevens(last_response: str) -> str:
           being subtracted ("take away seven", "minus 7", "take away another seven").
         - Ignore filler: um, er, erm, well, uh, hold on, then, and, is it, let me think.
         Example
-        Patient said: Well... uh... hundred take away seven is... um... ninety... ninety-three. Then... hold on... eighty... eighty-six. Erm... minus seven... is... seventy... seventy-nine. Uh... seventy... seventy-two. And... um... sixty... sixty-three.
+        Patient said: Well... uh... hundred take away seven is... um... ninety... ninety-three. 
+        Then... hold on... eighty... eighty-six. Erm... minus seven... is... seventy... seventy-nine. Uh... seventy... seventy-two. 
+        And... um... sixty... sixty-three.
         93 86 79 72 63
         """
         )),

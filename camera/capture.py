@@ -16,6 +16,7 @@ def resizer(image, width=500):
     return cv2.resize(image, size), size
 
 def find_document_contour(frame):
+    """Finds edges of documents """
     # Downsample frame to accelerate processing and standardize noise scale
     img_re, size = resizer(frame)
 

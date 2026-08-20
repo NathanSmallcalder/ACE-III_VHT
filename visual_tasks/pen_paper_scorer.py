@@ -50,10 +50,8 @@ def _extract_frames(video_path: str, output_dir: str, num_frames: int = frames, 
         frames_raw.append(frame)
         prev = gray
     cap.release()
-
     if not frames_raw:
         return []
-
     active = [i for i, m in enumerate(motions) if m > motion_floor] or list(range(len(frames_raw)))
     n = min(num_frames, len(active))
     keep = sorted({active[i * (len(active) - 1) // max(n - 1, 1)] for i in range(n)})

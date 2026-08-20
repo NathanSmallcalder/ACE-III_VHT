@@ -43,7 +43,7 @@ extract_final_answer_cases = {
     "season_hedged": ("Well it's not quite summer, more like spring I'd say.", "What season is it?", "spring"),
     "year_self_correction": ("Uh, 2024, no wait, I think it's 2026.", "What year is it?", "2026"),
     "recognition_reasoning": ("Well it's definitely not Oak Close, so I'll say Orchard Close.", "Was the street Orchard Place, Oak Close, or Orchard Close?", "Orchard Close"),
-    "picture_comprehension_reasoning": ("It's not the penguin, penguins live in the Antarctic not near the monarchy, it's the crown.", "Which picture is associated with the monarchy?", "crown"),
+    "picture_comprehension_reasoning": ("It's not the penguin, penguins live in the Antarctic , it's the crown.", "Which picture is associated with the monarchy?", "crown"),
 }
 
 @pytest.mark.parametrize(

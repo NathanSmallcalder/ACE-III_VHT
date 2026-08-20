@@ -13,9 +13,9 @@ def furhat_repeat(furhat, angle=-15, duration=2):
     gesture = {
         "name": "HeadTiltConfused",
         "frames": [
-            {"time": [duration],        "params": {"NECK_ROLL": angle}},  # reach tilt
-            {"time": [duration + 1.5], "params": {"NECK_ROLL": angle}},  # hold
-            {"time": [duration + 1.5 + duration], "params": {"NECK_ROLL": 0}}  # return to neutral
+            {"time": [0.4],            "params": {"NECK_ROLL": angle}},  # reach tilt
+            {"time": [duration],       "params": {"NECK_ROLL": angle}},  # hold while talking
+            {"time": [duration + 0.4], "params": {"NECK_ROLL": 0}}  # return to neutral
         ],
         "class": "furhatos.gestures.Gesture"
     }

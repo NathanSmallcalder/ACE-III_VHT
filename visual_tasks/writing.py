@@ -10,8 +10,6 @@ load_dotenv()
 
 # Load the English NLP model
 nlp = spacy.load("en_core_web_sm")
-# Built on first use and closed again in score_sentence_writing -- LanguageTool runs a
-# local Java server
 tool = None
 
 
