@@ -3,6 +3,8 @@
 ### Prerequisites
 
 ```bash
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 winget install Microsoft.OpenJDK.21
 python -m spacy download en_core_web_sm
@@ -25,7 +27,7 @@ used for dialogue, and the vision model scores the drawing tasks:
 
 **Furhat robot.** Run the Furhat SDK Virtual Robot locally with the remote API enabled;
 `main.py` connects to `127.0.0.1` at startup and speech is routed through it, so the session
-will not start without it.
+will not start without it. Password is admin on furhat app if an api key is needed contact me.
 
 **Webcam.** Needed for the drawing tasks, which capture through `camera/capture.py` at device
 index `0` — change `camera_index` if you have more than one camera. A mount pointed down at a
@@ -33,13 +35,12 @@ sheet of paper works best, but you can also just hold the finished drawing up to
 
 ### API Keys
 
-`main.py` needs no API keys — it runs entirely against the local models above. Keys are only
+`main.py` runs entirely against the local models above. Keys are only
 used by the offline evaluation scripts, read from a `.env` file in the project root:
 
 ```
 GOOGLE_API_KEY=...    # synthetic_personas/generate_transcript.py, test/model_comparison.py 
-CLAUDE=...            # test/model_comparison.py, test/vlm_confusion.py (Anthropic key)
-FURHAT_LOCAL_AUTH = ...     # Furhat connection locally
+CLAUDE=...            # test/model_comparison.py (Anthropic key)
 
 ```
 
@@ -90,10 +91,6 @@ each value on the command line at startup.
 python main.py
 ```
 
-### System Architecture and Workflow
-
-
-
 ### Directory Structure
 
 ```
@@ -136,13 +133,12 @@ ace/
 │   ├── marking_test.py         # scorer unit tests, run offline
 │   ├── llm_test.py             # turn classification (needs LM Studio)
 │   ├── vlm_test.py             # drawing scorers vs labelled image sets
-│   ├── model_comparison.py     # benchmarks text/vision models
-│   ├── vlm_confusion.py        # builds the confusion matrix figures
+│   ├── model_comparison.py     # benchmarks vision models, builds the confusion matrix figures
 │   ├── Clocks/1..5/            # ground-truth drawings, folder name = expected score
 │   ├── cube/1..2/
 │   └── InfinitySymbol/0..1/
 │
-├── synthetic_personas/         # persona + transcript generation, replay, results
+├── synthetic_personas/         # persona + transcript generation, replay, results, dataset analysis
 ├── synthetic_transcripts/      # generated participant transcripts (200)
 │
 └── results/
@@ -161,17 +157,13 @@ dementia**. Rows are the designed status, columns the status the pipeline assign
 
 | True \ Predicted | Healthy | MCI | Dementia | Total |
 | --- | ---: | ---: | ---: | ---: |
-| **Healthy** | **60** | 2 | 0 | 63 |
+| **Healthy** | **61** | 2 | 0 | 63 |
 | **MCI** | 0 | **72** | 7 | 79 |
 | **Dementia** | 0 | 0 | **58** | 58 |
-| **Total** | 60 | 72 | 68 | 200 |
+| **Total** | 61 | 74 | 65 | 200 |
 
-Overall agreement is **187/200 (93.5%)**. Per class: healthy 60/63 (95.2%), MCI 69/79
-(87.3%), dementia 58/58 (100%).
-
-All 13 disagreements sit on the severity-overestimating side — 3 healthy scored into the MCI
-band and 10 MCI into the dementia band, with no case scored as less impaired than designed.
-MCI is the weakest class, which is expected given it is the narrowest band at 11 points wide.
+Overall agreement is **191/200 (95.5%)**. Per class: healthy 61/63 (96.8%), MCI 72/79
+(91.1%), dementia 58/58 (100%).
 
 Reproduce with:
 

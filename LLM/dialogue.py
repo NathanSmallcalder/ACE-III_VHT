@@ -7,10 +7,10 @@ def introduce(patient_name: str) -> str:
     result = llm_warm.invoke([
         SystemMessage(content=(
             "You are a warm clinical assessor about to begin the ACE-III cognitive "
-            "assestion sment with a patient. Reply with a friendly introduction"
+            "assessment with a patient. Reply with a friendly introduction, "
             "greet the patient by name and let them know you'll be asking "
-            "some questions now. Do not explain the test mechanics, do not ask a ques"
-            "yourself, do not use quotes. inform the patient that they will need a pen and a few peices of paper in front of them"
+            "some questions now. Do not explain the test mechanics, do not ask a question "
+            "yourself, do not use quotes. Inform the patient that they will need a pen and a few pieces of paper in front of them"
         )),
         HumanMessage(content=f"Patient's name: {patient_name}")
     ])
@@ -73,8 +73,6 @@ def transition_que(state, patient_name: str, domain: str, task_type: str, sub_in
     previous_task = state.get("previous_task_signature")
     """Transition Task to Paper or click on screen"""
     if previous_task is not None and previous_task != (domain, task_type):
-        return transition()
-    if domain == "Visuospatial" and task_type == "click" and previous_task != (domain, task_type):
         return transition()
 
     last_patient = next(
@@ -154,13 +152,14 @@ labels = {"answer", "repeat", "off_topic", "incomplete"}
 def classify_turn(last_response: str, question_text: str = "") -> str:
     out = llm_strict.invoke([
         SystemMessage(content=(
-            "Classify a patient's speach during a cognitive test, given the question "
+            "Classify a patient's speech during a cognitive test, given the question "
             "they were just asked. Reply with EXACTLY one of these words, nothing else: "
             "answer, repeat, off_topic, incomplete.\n"
             "- answer: a genuine attempt at THIS question, right or wrong, however short. "
-            " replies (a single number, word, name, ordinal, or 'the first') are "
-            "complete answers. Repeating the same word in context thats relivent to the question is an answer. "
+            "Short replies (a single number, word, name, ordinal, or 'the first') are "
+            "complete answers. Repeating the same word in context that's relevant to the question is an answer. "
             "If a real answer value appears anywhere in the utterance, it counts as answer even "
+            "if it is surrounded by hesitation, repetition or rambling.\n"
             "- repeat: asking YOU to say the question again ('what?', 'sorry?', 'say that "
             "again') or saying they didn't hear it.\n"
             "- off_topic: not a plausible attempt at this question — rambling, nonsense "
@@ -178,8 +177,8 @@ def classify_turn(last_response: str, question_text: str = "") -> str:
             "Q: What season is it?\nPatient: uh... is uh... winter\n-> answer\n"
             "Q: Which street is this?\nPatient: Um, Hospital Road.\n-> answer\n"
             "Q: What day is it?\nPatient: What? Can you repeat that?\n-> repeat\n"
-            "Q: What month is it?\nPatient: Um, I think, I think it is...\n-> incomplete"
-            "Q: What letter is this\nPatient: No..\n-->repeat"
+            "Q: What month is it?\nPatient: Um, I think, I think it is...\n-> incomplete\n"
+            "Q: What letter is this?\nPatient: No..\n-> repeat"
         )),
         HumanMessage(content=f"Question asked: {question_text}\nPatient said: {last_response}")
     ])

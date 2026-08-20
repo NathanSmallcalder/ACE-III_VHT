@@ -107,7 +107,7 @@ def score_integer(response, answers):
 def score_serial_sevens(response):
     """Five steps down from 100, one mark per step exactly 7 below the number
     said before it. Takes the numbers the patient offered as answers -- graph.py
-    runs extract_serial_sevens over the spoken turn first, so no word parsing
+    runs extract_serial_sevens over the spoken turn first, no word parsing
     happens here. Values of 100+ (the starting point, echoed back) and a number
     repeated twice in a row are dropped before scoring."""
     if isinstance(response, list):
@@ -133,11 +133,9 @@ def score_serial_sevens(response):
 
 tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
 
-def _is_number_fragment(response_words, i, n):
+def is_number_fragment(response_words, i, n):
     """A lone ones/ordinal word (e.g. "ninth") immediately preceded by a
-    tens-word (e.g. "twenty ninth", from hyphen-split "twenty-ninth") is the
-    tail of a compound number -- only the pair together counts as a match,
-    not the ones-word alone."""
+    tens-word (e.g. "twenty ninth", from hyphen-split "twenty-ninth")."""
     return n == 1 and i > 0 and response_words[i - 1] in tens
 
 def score_fuzzy(response, answers):
@@ -148,7 +146,7 @@ def score_fuzzy(response, answers):
         expected = normalise_number(clean_response(answer))
         for n in range(1, min(fuzzy_window, len(response_words)) + 1):
             for i in range(len(response_words) - n + 1):
-                if _is_number_fragment(response_words, i, n):
+                if is_number_fragment(response_words, i, n):
                     continue
                 span = response_words[i:i + n]
                 window = normalise_number(" ".join(span))
@@ -171,7 +169,6 @@ name_fillers = {
     "um", "uh", "erm", "i", "think", "that's", "that", "mr", "mrs", "ms", "dr",
     "president", "minister", "prime", "hold", "on", "yes", "sure", "right", "okay", "ok",
 }
-
 
 def score_person_name(response, answers):
     """
@@ -387,7 +384,7 @@ def p_word_root(word):
     Normalizing to the WordNet root (via morphy) merges perseverations and plurals
     (pay/paid/pays -> pay, pot/pots -> pot) into a single countable word."""
     word = word.lower().strip()
-    # Rejects the word if less than 2 or starts with P return None
+    # Rejects the word if less than 3 or starts with P return None
     if len(word) < 3 or not word.startswith("p"):
         return None
     # rejects word if in common names

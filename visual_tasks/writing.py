@@ -2,8 +2,6 @@ import os
 
 import spacy
 from dotenv import load_dotenv
-
-from LLM.LLM import llm_strict
 from LLM.vlm import build_client, describe_images, save_vlm_response
 import language_tool_python
 load_dotenv()
@@ -29,8 +27,7 @@ def sentence_has_grammer_issues(sentence_text):
 def classify_sentences(text):
     """Split text into sentences and, for each, report whether it has a
     subject+verb (i.e. counts as a sentence rather than a fragment) and
-    whether it contains any grammar/spelling errors. Error detection is
-    LLM-judged per sentence """
+    whether it contains any grammar/spelling errors."""
     doc = nlp(text)
 
     classified = []

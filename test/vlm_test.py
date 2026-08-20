@@ -1,9 +1,6 @@
 import os
-
 import pytest
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
-
 import visual_tasks.clock_scorer as clock_scorer
 import visual_tasks.infinity_scorer as infinity_scorer
 import visual_tasks.cube_scorer as cube_scorer

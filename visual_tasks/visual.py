@@ -8,7 +8,6 @@ from LLM.dialogue import transition_que, rephrase_question, check_in, is_finishe
 from marking.marking import parse_spoken_prompts
 from voice.capture import max_response
 
-draw_tasks = {"Clock", "Infinity Diagram", "Wire Cube", "Writing"}
 draw_timer = 180 #3 mins
 video_timer = 60 #1 min, hard cap on the recording
 

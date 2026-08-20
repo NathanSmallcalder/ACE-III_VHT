@@ -30,14 +30,13 @@ class ACEState(MessagesState):
     question_turn_start: int  # index into messages where the in-progress question's turns began
     previous_task_signature: tuple  # (domain, modality) of the most recently finished question, or None
 
-
 session_config_ = None
 tts = None
 audio = None
 audio_f = None
 gui_ = None
 latest_state = None
-
+save_ace_file = None
 season_actual, season_adjacent = get_season_transition(datetime.now())
 
 def configure(session_config, tts_engine, audio, audio_fluency, gui):

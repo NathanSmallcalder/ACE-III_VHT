@@ -26,9 +26,7 @@ output = "synthetic_transcripts"
 
 def get_real_values():
     """Today's actual day/date/month/year/season, the assessment location, and
-    the current UK PM / US President -- the real-world values orientation and
-    retrograde_memory answers must be checked against, same source data_loader
-    gives the real running system."""
+    the current UK PM / US President."""
     session_config = get_session_config()
     day_of_week, date_window, month, year, season = resolve_dynamic_answers(
         ["DYNAMIC:day_of_week", "DYNAMIC:date", "DYNAMIC:month", "DYNAMIC:year", "DYNAMIC:season"],
