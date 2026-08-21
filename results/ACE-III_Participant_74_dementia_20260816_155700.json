@@ -10,7 +10,7 @@
     "Memory": 14,
     "Fluency": 8,
     "Language": 15,
-    "Visuospatial": 6
+    "Visuospatial": 7
   },
   "domain_caps": {
     "Attention": 18,
@@ -19,7 +19,7 @@
     "Language": 26,
     "Visuospatial": 16
   },
-  "total_score": 52,
+  "total_score": 53,
   "questions": [
     {
       "domain": "Attention",
@@ -312,7 +312,7 @@
       "response": [
         "test/cube/1\\Screenshot 2026-07-20 220149.png"
       ],
-      "score": 0,
+      "score": 1,
       "score_cap": 2
     },
     {
