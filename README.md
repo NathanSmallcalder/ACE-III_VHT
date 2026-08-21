@@ -158,11 +158,11 @@ dementia**. Rows are the designed status, columns the status the pipeline assign
 | True \ Predicted | Healthy | MCI | Dementia | Total |
 | --- | ---: | ---: | ---: | ---: |
 | **Healthy** | **61** | 2 | 0 | 63 |
-| **MCI** | 0 | **72** | 7 | 79 |
+| **MCI** | 0 | **73** | 6 | 79 |
 | **Dementia** | 0 | 0 | **58** | 58 |
 | **Total** | 61 | 74 | 65 | 200 |
 
-Overall agreement is **191/200 (95.5%)**. Per class: healthy 61/63 (96.8%), MCI 72/79
+Overall agreement is **191/200 (96%)**. Per class: healthy 61/63 (96.8%), MCI 72/79
 (91.1%), dementia 58/58 (100%).
 
 Reproduce with:
