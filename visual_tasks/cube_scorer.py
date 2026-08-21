@@ -7,9 +7,6 @@ load_dotenv()
 # ── VLM prompt ────────────────────────────────────────────────────────────────
 cube_prompt = """You are analysing a hand-drawn attempt at copying a wire-frame cube, for clinical scoring purposes.
 
-The target is a 3D wire-frame cube, drawn in any of the usual conventions (e.g. two offset squares connected
-corner-to-corner, or an isometric box with a front/top/side face) — a complete wire-frame cube has 12 edges
-(straight line segments) in total. Proportions do not need to be accurate.
 
 Be lenient when counting edges: count an edge as present if there is a line that plausibly represents it, even
 if the line is wavy, doesn't meet cleanly at the corner, overshoots past the vertex, or is faint — imperfect
