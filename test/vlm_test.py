@@ -1,66 +1,39 @@
+import os
+import pytest
 from dotenv import load_dotenv
-
-from LLM.vlm import build_client, describe_images, save_vlm_response
+import visual_tasks.clock_scorer as clock_scorer
+import visual_tasks.infinity_scorer as infinity_scorer
+import visual_tasks.cube_scorer as cube_scorer
 
 load_dotenv()
 
-# ── VLM prompt ────────────────────────────────────────────────────────────────
-cube_prompt = """You are analysing a hand-drawn attempt at copying a wire-frame cube, for clinical scoring purposes.
+clocks = os.path.join(os.path.dirname(__file__), "Clocks")
+infinity = os.path.join(os.path.dirname(__file__), "InfinitySymbol")
+cube = os.path.join(os.path.dirname(__file__), "cube")
 
+def collect_cases(DIR):
+    """Each subfolder of DIR is named after the expected total score
+    (e.g. Clocks/3/ contains clock images that should score 3)."""
+    cases = []
+    for subfolder in os.listdir(DIR):
+        expected_score = int(subfolder)
+        subfolder_path = os.path.join(DIR, subfolder)
+        for filename in os.listdir(subfolder_path):
+            image_path = os.path.join(subfolder_path, filename)
+            cases.append(pytest.param(image_path, expected_score, id=f"{subfolder}/{filename}"))
+    return cases
 
-Be lenient when counting edges: count an edge as present if there is a line that plausibly represents it, even
-if the line is wavy, doesn't meet cleanly at the corner, overshoots past the vertex, or is faint — imperfect
-execution still counts. Only mark an edge as absent if there is no line at all along that connection.
+@pytest.mark.parametrize("image_path,expected_score", collect_cases(clocks))
+def test_clock_score(image_path, expected_score):
+    result = clock_scorer.score_clock_image(image_path)
+    assert result["total"] == expected_score
 
-Describe only what is visible in the drawing. Respond with a single JSON object and nothing else.
+@pytest.mark.parametrize("image_path,expected_score", collect_cases(cube))
+def test_cube_score(image_path, expected_score):
+    result = cube_scorer.score_cube_image(image_path)
+    assert result["total"] == expected_score
 
-{
-  "all_edges_present": "<yes/no — is every one of the cube's 12 edges drawn, or is at least one missing entirely, or are there more than 12?>",
-  "general_cube_shape": "<yes/no — Is a general cube shape maintained, regardless of exact style or proportions>",
-
-  "notes": "<one short sentence flagging anything unusual not captured above, or none>"
-}
-"""
-
-llm = build_client(0.0, 20000)
-
-def score_cube(data: dict) -> dict:
-    def get(field):
-        return str(data.get(field, "")).strip().lower()
-
-    all_edges = get("all_edges_present") == "yes"
-    cube_shape = get("general_cube_shape") == "yes"
-
-    if all_edges:
-        total = 2
-    elif cube_shape:
-        total = 1
-    else:
-        total = 0
-
-    return {"total": total}
-
-
-def score_cube_image(drawn_path: str) -> dict:
-    """Describe a hand-drawn wire-cube copy via VLM and score it against the ACE-III cube criteria."""
-    data = describe_images(llm, cube_prompt, [drawn_path])
-    result = score_cube(data)
-    save_vlm_response("wire_cube", drawn_path, data, result)
-    return result
-
-
-if __name__ == "__main__":
-    import os
-    drawn_path = os.path.join(os.path.dirname(__file__), "wire_cube.png")
-    print(f"Scoring: {os.path.basename(drawn_path)}")
-
-    data = describe_images(llm, cube_prompt, [drawn_path])
-
-    print("\n── Parsed Fields ────────────────────────────────────────────")
-    for field in ["all_edges_present", "general_cube_shape", "notes"]:
-        print(f"  {field}: {str(data.get(field, '')).strip().lower()}")
-
-    scores = score_cube(data)
-
-    print("\n── ACE-III Wire Cube Score ─────────────────────────────────")
-    print(f"  Total: {scores['total']} / 2")
+@pytest.mark.parametrize("image_path,expected_score", collect_cases(infinity))
+def test_infinity_score(image_path, expected_score):
+    result = infinity_scorer.score_infinity_image(image_path)
+    assert result["total"] == expected_score
