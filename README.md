@@ -11,8 +11,8 @@ The system conducts an assessment through a Furhat virtual robot, handles spoken
 
 ### Key Results
 
-<li> 96% overall cognitive-status classification agreement across 200 synthetic assessments </li>
-<li> 85.5% agreement across individual ACE-III domain scores </li> 
+<li> 95.5% overall cognitive-status classification agreement across 200 synthetic assessments </li>
+<li> 85.5% agreement across individual ACE-III domain scores (Across all domain sectors) </li> 
 <li> Evaluated multiple vision-language models for automated drawing assessment </li> 
 <li> Implemented deterministic scoring for the ACE-III rubric rather than allowing an LLM to determine final scores </li> 
 <li> Supports conversational assessment through a Furhat robot with speech recognition and text-to-speech </li> 
@@ -50,6 +50,22 @@ dementia**. Rows are the designed status, columns the status the pipeline assign
 
 Overall agreement is **191/200 (96%)**. Per class: healthy 61/63 (96.8%), MCI 72/79
 (91.1%), dementia 58/58 (100%).
+
+Reproduce with:
+
+```bash
+python -m synthetic_personas.results
+```
+
+| Model | Run 1 | Run 2 | Run 3 | Mean (exact) | Range | Within ±1 pt | MAE |
+|---|---|---|---|---|---|---|---|
+| Qwen/qwen3-vl-4b | 10% | 10% | 10% | 10% | 10–10% | 60.0% | 1.40 |
+| Claude Opus-5 | 50% | 50% | 50% | 50% | 50–50% | 93.3% | 0.60 |
+| Google/gemma-4-e4b | 30% | 30% | 30% | 30% | 30–30% | 73.3% | 0.97 |
+| **Qwen/qwen3-vl-8b** (deployed) | 30% | 30% | 30% | 30% | 30–30% | 70.0% | 1.10 |
+| Google/gemini-3.6-flash | 50% | 80% | 80% | 70% | 50–80% | 96.7% | 0.37 |
+
+
 
 ### Prerequisites
 
@@ -199,8 +215,4 @@ ace/
 ```
 
 
-Reproduce with:
 
-```bash
-python -m synthetic_personas.results
-```
