@@ -1,5 +1,9 @@
 # ACE-III cognitive test automation
 
+# Demo
+
+[Video Demo](https://youtu.be/aTp1rLMuB-M)
+
 ### ACE-III Cognitive Test Automation
 
 An end-to-end system for automating administration and scoring of the Addenbrooke's Cognitive Examination III (ACE-III) using a conversational robot, local language/vision models, speech recognition, and deterministic scoring.
