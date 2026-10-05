@@ -200,3 +200,7 @@ Reproduce with:
 ```bash
 python -m synthetic_personas.results
 ```
+
+## Demonstration
+
+[Watch the demonstration](Video_demo_ACE_III.mp4)
