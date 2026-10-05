@@ -1,5 +1,52 @@
 # ACE-III cognitive test automation
 
+### ACE-III Cognitive Test Automation
+
+An end-to-end system for automating administration and scoring of the Addenbrooke's Cognitive Examination III (ACE-III) using a conversational robot, local language/vision models, speech recognition, and deterministic scoring.
+The system conducts an assessment through a Furhat virtual robot, handles spoken responses using speech recognition and language models, captures visual tasks through a webcam, and produces a structured ACE-III report.
+
+### Key Results
+
+<li> 96% overall cognitive-status classification agreement across 200 synthetic assessments </li>
+<li> 85.5% agreement across individual ACE-III domain scores </li> 
+<li> Evaluated multiple vision-language models for automated drawing assessment </li> 
+<li> Implemented deterministic scoring for the ACE-III rubric rather than allowing an LLM to determine final scores </li> 
+<li> Supports conversational assessment through a Furhat robot with speech recognition and text-to-speech </li> 
+<li> Runs the core assessment pipeline using locally hosted models, avoiding dependence on external APIs during normal operation </li> 
+<li> Produces resumable sessions and structured JSON assessment reports </li> 
+
+### System Architecture
+
+The assessment combines several components:
+
+<li> Participant → Speech / Drawing Input → AI Processing → Deterministic Scoring → ACE-III Report </li> 
+<li>Speech: microphone input → faster-whisper transcription → response extraction/classification </li> 
+<li> Dialogue: local language model handles conversational interaction, rephrasing and response interpretation </li> 
+<li> Visual tasks: webcam capture → vision-language model → structured visual assessment </li> 
+<li> Scoring: Python-based deterministic scoring implements the ACE-III scoring rules </li> 
+<li> Robot: Furhat provides speech output, gestures and the conversational interface </li> 
+<li> Evaluation: synthetic participants and labelled visual datasets are used to evaluate classification and visual-scoring performance </li> 
+
+The language and vision models are used to interpret participant responses, not to make the final clinical scoring decision.
+Where possible, extracted responses are passed into deterministic Python scoring functions implementing the ACE-III rubric. This makes the scoring process reproducible and allows individual errors to be traced back to the relevant processing stage.
+
+## Results
+
+Each of the 200 synthetic participants was generated with a target cognitive status, run
+through the full marking pipeline, and classified from its resulting ACE-III total by
+`classify_total` in `synthetic_personas/results.py`: **>= 88 healthy, 77-87 MCI, < 77
+dementia**. Rows are the designed status, columns the status the pipeline assigned.
+
+| True \ Predicted | Healthy | MCI | Dementia | Total |
+| --- | ---: | ---: | ---: | ---: |
+| **Healthy** | **61** | 2 | 0 | 63 |
+| **MCI** | 0 | **73** | 6 | 79 |
+| **Dementia** | 0 | 0 | **58** | 58 |
+| **Total** | 61 | 74 | 65 | 200 |
+
+Overall agreement is **191/200 (96%)**. Per class: healthy 61/63 (96.8%), MCI 72/79
+(91.1%), dementia 58/58 (100%).
+
 ### Prerequisites
 
 ```bash
@@ -147,23 +194,6 @@ ace/
     └── vlm_responses/          # raw vision model outputs
 ```
 
-
-## Results
-
-Each of the 200 synthetic participants was generated with a target cognitive status, run
-through the full marking pipeline, and classified from its resulting ACE-III total by
-`classify_total` in `synthetic_personas/results.py`: **>= 88 healthy, 77-87 MCI, < 77
-dementia**. Rows are the designed status, columns the status the pipeline assigned.
-
-| True \ Predicted | Healthy | MCI | Dementia | Total |
-| --- | ---: | ---: | ---: | ---: |
-| **Healthy** | **61** | 2 | 0 | 63 |
-| **MCI** | 0 | **73** | 6 | 79 |
-| **Dementia** | 0 | 0 | **58** | 58 |
-| **Total** | 61 | 74 | 65 | 200 |
-
-Overall agreement is **191/200 (96%)**. Per class: healthy 61/63 (96.8%), MCI 72/79
-(91.1%), dementia 58/58 (100%).
 
 Reproduce with:
 
