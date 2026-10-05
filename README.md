@@ -65,6 +65,18 @@ python -m synthetic_personas.results
 | **Qwen/qwen3-vl-8b** (deployed) | 30% | 30% | 30% | 30% | 30–30% | 70.0% | 1.10 |
 | Google/gemini-3.6-flash | 50% | 80% | 80% | 70% | 50–80% | 96.7% | 0.37 |
 
+### System Design
+
+## State Diagram
+![LangGraph state machine](Diagrams/State%20Diagram.png)
+
+## System Flow
+
+![ACE-III classification confusion matrix](Diagrams/System%20Flow.png)
+
+
+
+
 
 
 ### Prerequisites
